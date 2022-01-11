@@ -6,14 +6,10 @@ import torch.optim as optim
 from torch.distributions import Categorical
 import torch.multiprocessing as mp
 import numpy as np
+import sys
+sys.path.append(".")
+from args.config import a2c_params as params
 
-# Hyperparameters
-n_train_processes = 3
-learning_rate = 0.0002
-update_interval = 5
-gamma = 0.98
-max_train_steps = 60000
-PRINT_INTERVAL = update_interval * 100
 
 class ActorCritic(nn.Module):
     def __init__(self):
@@ -32,6 +28,7 @@ class ActorCritic(nn.Module):
         x = F.relu(self.fc1(x))
         v = self.fc_v(x)
         return v
+
 
 def worker(worker_id, master_end, worker_end):
     master_end.close()  # Forbid worker to use the master end for messaging
@@ -59,6 +56,7 @@ def worker(worker_id, master_end, worker_end):
         else:
             raise NotImplementedError
 
+
 class ParallelEnv:
     def __init__(self, n_train_processes):
         self.nenvs = n_train_processes
@@ -69,7 +67,9 @@ class ParallelEnv:
         master_ends, worker_ends = zip(*[mp.Pipe() for _ in range(self.nenvs)])
         self.master_ends, self.worker_ends = master_ends, worker_ends
 
-        for worker_id, (master_end, worker_end) in enumerate(zip(master_ends, worker_ends)):
+        for worker_id, (master_end,
+                        worker_end) in enumerate(zip(master_ends,
+                                                     worker_ends)):
             p = mp.Process(target=worker,
                            args=(worker_id, master_end, worker_end))
             p.daemon = True
@@ -111,6 +111,7 @@ class ParallelEnv:
             worker.join()
             self.closed = True
 
+
 def test(step_idx, model):
     env = gym.make('CartPole-v1')
     score = 0.0
@@ -127,10 +128,13 @@ def test(step_idx, model):
             score += r
         done = False
     print(f"Step # :{step_idx}, avg score : {score/num_test:.1f}")
+    with open("./result/a2c.csv", "a+", encoding="utf-8") as f:
+        f.write("{},{}\n".format(step_idx, score / num_test))
 
     env.close()
 
-def compute_target(v_final, r_lst, mask_lst):
+
+def compute_target(v_final, r_lst, mask_lst, gamma):
     G = v_final.reshape(-1)
     td_target = list()
 
@@ -140,48 +144,69 @@ def compute_target(v_final, r_lst, mask_lst):
 
     return torch.tensor(td_target[::-1]).float()
 
-if __name__ == '__main__':
-    envs = ParallelEnv(n_train_processes)
 
-    model = ActorCritic()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+class a2c_algo():
+    def __init__(self):
+        super(a2c_algo, self).__init__()
+        self.n_train_processes = params['n_train_processes']
+        self.learning_rate = params['learning_rate']
+        self.max_train_steps = params['max_train_steps']
+        self.update_interval = params['update_interval']
+        self.gamma = params['gamma']
+        self.print_interval = self.update_interval * 50
+        self.model = ActorCritic()
+        self.envs = ParallelEnv(self.n_train_processes)
+        self.optimizer = optim.Adam(self.model.parameters(),
+                                    lr=self.learning_rate)
 
-    step_idx = 0
-    s = envs.reset()
-    while step_idx < max_train_steps:
-        s_lst, a_lst, r_lst, mask_lst = list(), list(), list(), list()
-        for _ in range(update_interval):
-            prob = model.pi(torch.from_numpy(s).float())
-            a = Categorical(prob).sample().numpy()
-            s_prime, r, done, info = envs.step(a)
+    def init_write(self):
+        with open("./result/a2c.csv", "w+", encoding="utf-8") as f:
+            f.write("steps,reward\n")
 
-            s_lst.append(s)
-            a_lst.append(a)
-            r_lst.append(r/100.0)
-            mask_lst.append(1 - done)
+    def train(self):
+        self.init_write()
+        step_idx = 0
+        s = self.envs.reset()
+        while step_idx < self.max_train_steps:
+            s_lst, a_lst, r_lst, mask_lst = list(), list(), list(), list()
+            for _ in range(self.update_interval):
+                prob = self.model.pi(torch.from_numpy(s).float())
+                a = Categorical(prob).sample().numpy()
+                s_prime, r, done, info = self.envs.step(a)
 
-            s = s_prime
-            step_idx += 1
+                s_lst.append(s)
+                a_lst.append(a)
+                r_lst.append(r / 100.0)
+                mask_lst.append(1 - done)
 
-        s_final = torch.from_numpy(s_prime).float()
-        v_final = model.v(s_final).detach().clone().numpy()
-        td_target = compute_target(v_final, r_lst, mask_lst)
+                s = s_prime
+                step_idx += 1
 
-        td_target_vec = td_target.reshape(-1)
-        s_vec = torch.tensor(s_lst).float().reshape(-1, 4)  # 4 == Dimension of state
-        a_vec = torch.tensor(a_lst).reshape(-1).unsqueeze(1)
-        advantage = td_target_vec - model.v(s_vec).reshape(-1)
+            s_final = torch.from_numpy(s_prime).float()
+            v_final = self.model.v(s_final).detach().clone().numpy()
+            td_target = compute_target(v_final, r_lst, mask_lst, self.gamma)
 
-        pi = model.pi(s_vec, softmax_dim=1)
-        pi_a = pi.gather(1, a_vec).reshape(-1)
-        loss = -(torch.log(pi_a) * advantage.detach()).mean() +\
-            F.smooth_l1_loss(model.v(s_vec).reshape(-1), td_target_vec)
+            td_target_vec = td_target.reshape(-1)
+            s_vec = torch.tensor(s_lst).float().reshape(
+                -1, 4)  # 4 == Dimension of state
+            a_vec = torch.tensor(a_lst).reshape(-1).unsqueeze(1)
+            advantage = td_target_vec - self.model.v(s_vec).reshape(-1)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            pi = self.model.pi(s_vec, softmax_dim=1)
+            pi_a = pi.gather(1, a_vec).reshape(-1)
+            loss = -(torch.log(pi_a) * advantage.detach()).mean() +\
+                F.smooth_l1_loss(self.model.v(s_vec).reshape(-1), td_target_vec)
 
-        if step_idx % PRINT_INTERVAL == 0:
-            test(step_idx, model)
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
 
-    envs.close()
+            if step_idx % self.print_interval == 0:
+                test(step_idx, self.model)
+
+        self.envs.close()
+
+
+if __name__ == "__main__":
+    algo = a2c_algo()
+    algo.train()

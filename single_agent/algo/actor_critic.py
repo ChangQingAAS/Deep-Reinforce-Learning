@@ -84,7 +84,7 @@ class ActorCritic_ALGO():
             f.write("epoch_number,reward\n")
 
     def train(self):
-
+        self.init_write()
         for n_epi in range(10000):
             done = False
             s = self.env.reset()

@@ -60,6 +60,7 @@ class REINFORCE_ALGO():
         for self.n_epi in range(self.epoch):
             self.s = self.env.reset()
             self.done = False
+            self.score = 0.0
 
             while not self.done:  # CartPole-v1 forced to terminates at 500 step.
                 self.prob = self.pi(torch.from_numpy(self.s).float())
@@ -80,7 +81,6 @@ class REINFORCE_ALGO():
             if self.n_epi % self.print_interval == 0:
                 print("episode :{}, avg score : {}".format(
                     self.n_epi, self.score / self.print_interval))
-                self.score = 0.0
 
         self.env.close()
 

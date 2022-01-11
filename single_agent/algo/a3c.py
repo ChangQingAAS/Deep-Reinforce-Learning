@@ -6,14 +6,9 @@ import torch.optim as optim
 from torch.distributions import Categorical
 import torch.multiprocessing as mp
 import time
-
-# Hyperparameters
-n_train_processes = 3
-learning_rate = 0.0002
-update_interval = 5
-gamma = 0.98
-max_train_ep = 300
-max_test_ep = 400
+import sys
+sys.path.append(".")
+from args.config import a3c_params as params
 
 
 class ActorCritic(nn.Module):
@@ -35,7 +30,8 @@ class ActorCritic(nn.Module):
         return v
 
 
-def train(global_model, rank):
+def train(global_model, rank, learning_rate, gamma, max_train_ep,
+          update_interval):
     local_model = ActorCritic()
     local_model.load_state_dict(global_model.state_dict())
 
@@ -56,7 +52,7 @@ def train(global_model, rank):
 
                 s_lst.append(s)
                 a_lst.append([a])
-                r_lst.append(r/100.0)
+                r_lst.append(r / 100.0)
 
                 s = s_prime
                 if done:
@@ -81,7 +77,8 @@ def train(global_model, rank):
 
             optimizer.zero_grad()
             loss.mean().backward()
-            for global_param, local_param in zip(global_model.parameters(), local_model.parameters()):
+            for global_param, local_param in zip(global_model.parameters(),
+                                                 local_model.parameters()):
                 global_param._grad = local_param.grad
             optimizer.step()
             local_model.load_state_dict(global_model.state_dict())
@@ -90,14 +87,16 @@ def train(global_model, rank):
     print("Training process {} reached maximum episode.".format(rank))
 
 
-def test(global_model):
-    env = gym.make('CartPole-v1')
+def test(global_model, max_test_ep):
+    env = gym.make(params['gym_env'])
     score = 0.0
     print_interval = 20
 
     for n_epi in range(max_test_ep):
         done = False
         s = env.reset()
+        score = 0.0
+
         while not done:
             prob = global_model.pi(torch.from_numpy(s).float())
             a = Categorical(prob).sample().item()
@@ -105,25 +104,47 @@ def test(global_model):
             s = s_prime
             score += r
 
-        if n_epi % print_interval == 0 and n_epi != 0:
-            print("# of episode :{}, avg score : {:.1f}".format(
-                n_epi, score/print_interval))
-            score = 0.0
-            time.sleep(1)
+        with open("./result/a3c.csv", "a+", encoding="utf-8") as f:
+            f.write("{},{}\n".format(n_epi, score ))
+
+        time.sleep(1)
     env.close()
 
 
-if __name__ == '__main__':
-    global_model = ActorCritic()
-    global_model.share_memory()
+class a3c_algo():
+    def __init__(self):
+        super(a3c_algo, self).__init__()
+        self.learning_rate = params['learning_rate']
+        self.gamma = params['gamma']
+        self.global_model = ActorCritic()
+        self.global_model.share_memory()
+        self.processes = []
+        self.max_test_ep = params['max_test_ep']
+        self.max_train_ep = params['max_train_ep']
+        self.upadte_interval = params['update_interval']
+        self.n_train_processes = params['n_train_processes']
 
-    processes = []
-    for rank in range(n_train_processes + 1):  # + 1 for test process
-        if rank == 0:
-            p = mp.Process(target=test, args=(global_model,))
-        else:
-            p = mp.Process(target=train, args=(global_model, rank,))
-        p.start()
-        processes.append(p)
-    for p in processes:
-        p.join()
+    def init_write(self):
+        with open("./result/a3c.csv", "w+", encoding="utf-8") as f:
+            f.write("epoch_number,reward\n")
+
+    def train(self):
+        self.init_write()
+        for rank in range(self.n_train_processes + 1):  # + 1 for test process
+            if rank == 0:
+                p = mp.Process(target=test,
+                               args=(self.global_model, self.max_test_ep))
+            else:
+                p = mp.Process(target=train,
+                               args=(self.global_model, rank,
+                                     self.learning_rate, self.gamma,
+                                     self.max_train_ep, self.upadte_interval))
+            p.start()
+            self.processes.append(p)
+        for p in self.processes:
+            p.join()
+
+
+if __name__ == "__main__":
+    algo = a3c_algo()
+    algo.train()
