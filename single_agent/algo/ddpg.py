@@ -43,34 +43,38 @@ class ReplayBuffer():
 class MuNet(nn.Module):
     def __init__(self):
         super(MuNet, self).__init__()
-        self.fc1 = nn.Linear(3, 128)
+        self.fc1 = nn.Linear(4, 128)
         self.fc2 = nn.Linear(128, 64)
-        self.fc_mu = nn.Linear(64, 1)
+        self.fc_mu = nn.Linear(64, 2)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        mu = torch.tanh(
-            self.fc_mu(x)
-        ) * 2  # Multipled by 2 because the action space of the Pendulum-v0 is [-2,2]
+        x = self.fc_mu(x)
+        print("x is ", x, x.shape)
+        mu = torch.tensor([x.argmax().item()])
+        print("mu is ", mu, mu.shape)
         return mu
 
 
 class QNet(nn.Module):
     def __init__(self):
         super(QNet, self).__init__()
-        self.fc_s = nn.Linear(3, 64)
+        self.fc_s = nn.Linear(4, 64)
         self.fc_a = nn.Linear(1, 64)
         self.fc_q = nn.Linear(128, 32)
         self.fc_out = nn.Linear(32, 1)
 
     def forward(self, x, a):
-        h1 = F.relu(self.fc_s(x))
-        h2 = F.relu(self.fc_a(a))
-        cat = torch.cat([h1, h2], dim=1)
-        q = F.relu(self.fc_q(cat))
-        q = self.fc_out(q)
-        return q
+        try:
+            h1 = F.relu(self.fc_s(x))
+            h2 = F.relu(self.fc_a(a))
+            cat = torch.cat([h1, h2], dim=1)
+            q = F.relu(self.fc_q(cat))
+            q = self.fc_out(q)
+            return q
+        except:
+            print(a.shape, a)
 
 
 class OrnsteinUhlenbeckNoise():
@@ -88,6 +92,7 @@ class OrnsteinUhlenbeckNoise():
 
 def train_(mu, mu_target, q, q_target, memory, q_optimizer, mu_optimizer,
            batch_size, gamma, tau):
+
     s, a, r, s_prime, done_mask = memory.sample(batch_size)
 
     target = r + gamma * q_target(s_prime, mu_target(s_prime)) * done_mask
@@ -121,10 +126,13 @@ class ddpg_algo():
         self.batch_size = params['batch_size']
         self.gamma = params['gamma']
         self.tau = params['tau']
+        self.print_interval = params['print_interval']
+
+        self.init_write()
 
     def init_write(self):
         with open("./result/ddpg.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward\n")
+            f.write("epoch_number,average reward\n")
 
     def soft_update(self, net, net_target):
         for param_target, param in zip(net_target.parameters(),
@@ -133,7 +141,6 @@ class ddpg_algo():
                                     param.data * self.tau)
 
     def train(self):
-        self.init_write()
         score = 0.0
         for n_epi in range(self.epoch):
             s = self.env.reset()
@@ -141,9 +148,10 @@ class ddpg_algo():
 
             while not done:
                 a = self.mu(torch.from_numpy(s).float())
-                a = a.item() + self.ou_noise()[0]
-                s_prime, r, done, info = self.env.step([a])
-                self.memory.put((s, a, r / 100.0, s_prime, done))
+                print("action is ", a)
+                a = a.item()
+                s_prime, r, done, info = self.env.step(a)
+                self.memory.put((s, a, r, s_prime, done))
                 score += r
                 s = s_prime
 
@@ -155,8 +163,12 @@ class ddpg_algo():
                     self.soft_update(self.mu, self.mu_target)
                     self.soft_update(self.q, self.q_target)
 
-            with open("./result/ddpg.csv", "a+", encoding="utf-8") as f:
-                f.write("{},{}\n".format(n_epi, score))
+            if n_epi % self.print_interval == 0:
+                with open("./result/ddpg.csv", "a+", encoding="utf-8") as f:
+                    f.write("{},{}\n".format(n_epi, score))
+                print("n_episode :{}, score : {:.1f}".format(
+                    n_epi, score / self.print_interval))
+                score = 0.0
 
         self.env.close()
 

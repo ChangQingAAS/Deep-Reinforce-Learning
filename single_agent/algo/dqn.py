@@ -96,7 +96,6 @@ class DQN_ALGO():
             optimizer.step()
 
     def train(self):
-        self.init_write()
         score = 0.0
         for n_epi in range(self.epoch):
             #Linear annealing from 8% to 1%
@@ -106,6 +105,7 @@ class DQN_ALGO():
 
             while not done:
                 a = self.q.sample_action(torch.from_numpy(s).float(), epsilon)
+                # print("action is ", a)
                 s_prime, r, done, info = self.env.step(a)
                 done_mask = 0.0 if done else 1.0
                 self.memory.put((s, a, r, s_prime, done_mask))
