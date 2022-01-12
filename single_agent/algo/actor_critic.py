@@ -6,7 +6,7 @@ import torch.optim as optim
 from torch.distributions import Categorical
 import sys
 sys.path.append(".")
-from args.config import ActorCritic_params as params
+from args.config import default_params as params
 
 
 class ActorCritic(nn.Module):
@@ -41,13 +41,15 @@ class ActorCritic(nn.Module):
             s, a, r, s_prime, done = transition
             s_lst.append(s)
             a_lst.append([a])
-            r_lst.append([r / 100.0])
+            r_lst.append([r])
             s_prime_lst.append(s_prime)
             done_mask = 0.0 if done else 1.0
             done_lst.append([done_mask])
 
-        s_batch, a_batch, r_batch, s_prime_batch, done_batch = torch.tensor(s_lst, dtype=torch.float), torch.tensor(a_lst), \
-                                                               torch.tensor(r_lst, dtype=torch.float), torch.tensor(s_prime_lst, dtype=torch.float), \
+        s_batch, a_batch, r_batch, s_prime_batch, done_batch = torch.tensor(s_lst, dtype=torch.float), \
+                                                               torch.tensor(a_lst), \
+                                                               torch.tensor(r_lst, dtype=torch.float), \
+                                                               torch.tensor(s_prime_lst, dtype=torch.float), \
                                                                torch.tensor(done_lst, dtype=torch.float)
         self.data = []
         return s_batch, a_batch, r_batch, s_prime_batch, done_batch
@@ -72,20 +74,21 @@ class ActorCritic_ALGO():
         super(ActorCritic_ALGO, self).__init__()
         self.env = gym.make(params['gym_env'])
         self.print_interval = params["print_interval"]
-        self.score = params["score"]
         self.epoch = params["epoch"]
         self.learning_rate = params["learning_rate"]
         self.gamma = params["gamma"]
         self.n_rollout = params["n_rollout"]
         self.model = ActorCritic(self.learning_rate, self.gamma)
 
+        self.init_write()
+
     def init_write(self):
-        with open("./result/ActorCritic.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward\n")
+        with open("./result/actor_critic.csv", "w+", encoding="utf-8") as f:
+            f.write("epoch_number,average reward\n")
 
     def train(self):
-        self.init_write()
-        for n_epi in range(10000):
+        for n_epi in range(self.epoch):
+            score = 0.0
             done = False
             s = self.env.reset()
             while not done:
@@ -97,20 +100,21 @@ class ActorCritic_ALGO():
                     self.model.put_data((s, a, r, s_prime, done))
 
                     s = s_prime
-                    self.score += r
+                    score += r
 
                     if done:
                         break
 
                 self.model.train_net()
 
-            with open("./result/ActorCritic.csv", "a+", encoding="utf-8") as f:
-                f.write("{},{}\n".format(n_epi, self.score))
-
             if n_epi % self.print_interval == 0:
+                with open("./result/actor_critic.csv", "a+",
+                          encoding="utf-8") as f:
+                    f.write("{},{}\n".format(n_epi,
+                                             score / self.print_interval))
                 print("episode :{}, avg_score : {:.1f}".format(
-                    n_epi, self.score / self.print_interval))
-                self.score = 0.0
+                    n_epi, score / self.print_interval))
+                score = 0.0
         self.env.close()
 
 

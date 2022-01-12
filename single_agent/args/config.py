@@ -1,29 +1,27 @@
-REINFORCE_params = {
+default_params = {
     "gym_env": 'CartPole-v1',
-    "print_interval": 500,
     "learning_rate": 0.0002,
     "gamma": 0.98,
     "epoch": 10000,
-    "score": 0.0,
-}
-
-ActorCritic_params = {
-    "gym_env": 'CartPole-v1',
-    "print_interval": 500,
-    "learning_rate": 0.0002,
-    "gamma": 0.98,
-    "epoch": 10000,
-    "score": 0.0,
     "n_rollout": 10,
+    "buffer_limit": 50000,
+    "batch_size": 32,
+    "lmbda": 0.95,
+    "eps_clip": 0.1,
+    "K_epoch": 3,
+    "T_horizon": 20,
+    "n_train_processes": 3,
+    "update_interval": 5,
+    "max_train_steps": 60000,
+    "print_interval": 100,
 }
 
 dqn_params = {
     "gym_env": 'CartPole-v1',
-    "print_interval": 500,
+    "print_interval": 100,
     "learning_rate": 0.0005,  # 这里不一样
     "gamma": 0.98,
     "epoch": 10000,
-    "score": 0.0,
     "n_rollout": 10,
     "buffer_limit": 50000,
     "batch_size": 32
@@ -43,25 +41,6 @@ ppo_params = {
     "eps_clip": 0.1,
     "K_epoch": 3,
     "T_horizon": 20
-}
-
-a2c_params = {
-    "gym_env": 'CartPole-v1',
-    "learning_rate": 0.0002,
-    "gamma": 0.98,
-    "epoch": 10000,
-    "score": 0.0,
-    "n_rollout": 10,
-    "buffer_limit": 50000,
-    "batch_size": 32,
-    "lmbda": 0.95,
-    "eps_clip": 0.1,
-    "K_epoch": 3,
-    "T_horizon": 20,
-    "n_train_processes": 3,
-    "update_interval": 5,
-    "max_train_steps": 60000,
-    "print_interval": 500,
 }
 
 a3c_params = {

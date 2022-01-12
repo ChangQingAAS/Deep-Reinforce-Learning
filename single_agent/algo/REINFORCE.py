@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.distributions import Categorical
 import sys
 sys.path.append(".")
-from args.config import REINFORCE_params as params
+from args.config import default_params as params
 
 
 class Policy(nn.Module):
@@ -45,7 +45,6 @@ class REINFORCE_ALGO():
         super(REINFORCE_ALGO, self).__init__()
         self.env = gym.make(params['gym_env'])
         self.print_interval = params["print_interval"]
-        self.score = params["score"]
         self.epoch = params["epoch"]
         self.learning_rate = params["learning_rate"]
         self.gamma = params["gamma"]
@@ -53,14 +52,14 @@ class REINFORCE_ALGO():
 
     def init_write(self):
         with open("./result/REINFORCE.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward\n")
+            f.write("epoch_number,average reward\n")
 
     def train(self):
         self.init_write()
+        score = 0.0
         for self.n_epi in range(self.epoch):
             self.s = self.env.reset()
             self.done = False
-            self.score = 0.0
 
             while not self.done:  # CartPole-v1 forced to terminates at 500 step.
                 self.prob = self.pi(torch.from_numpy(self.s).float())
@@ -70,17 +69,18 @@ class REINFORCE_ALGO():
                     self.a.item())
                 self.pi.put_data((self.r, self.prob[self.a]))
                 self.s = self.s_prime
-                self.score += self.r
+                score += self.r
 
             self.pi.train_net()
 
-            # 边训练边写入最省内存
-            with open("./result/REINFORCE.csv", "a+", encoding="utf-8") as f:
-                f.write("{},{}\n".format(self.n_epi, self.score))
-
             if self.n_epi % self.print_interval == 0:
-                print("episode :{}, avg score : {}".format(
-                    self.n_epi, self.score / self.print_interval))
+                with open("./result/REINFORCE.csv", "a+",
+                          encoding="utf-8") as f:
+                    f.write("{},{}\n".format(self.n_epi,
+                                             score / self.print_interval))
+                    print("{},{}\n".format(self.n_epi,
+                                           score / self.print_interval))
+                score = 0.0
 
         self.env.close()
 

@@ -8,7 +8,7 @@ import torch.multiprocessing as mp
 import numpy as np
 import sys
 sys.path.append(".")
-from args.config import a2c_params as params
+from args.config import default_params as params
 
 
 class ActorCritic(nn.Module):
@@ -32,7 +32,7 @@ class ActorCritic(nn.Module):
 
 def worker(worker_id, master_end, worker_end):
     master_end.close()  # Forbid worker to use the master end for messaging
-    env = gym.make('CartPole-v1')
+    env = gym.make(params['gym_env'])
     env.seed(worker_id)
 
     while True:
@@ -113,7 +113,7 @@ class ParallelEnv:
 
 
 def test(step_idx, model):
-    env = gym.make('CartPole-v1')
+    env = gym.make(params['gym_env'])
     score = 0.0
     done = False
     num_test = 10
@@ -153,7 +153,7 @@ class a2c_algo():
         self.max_train_steps = params['max_train_steps']
         self.update_interval = params['update_interval']
         self.gamma = params['gamma']
-        self.print_interval = self.update_interval * 50
+        self.print_interval = self.update_interval * 10
         self.model = ActorCritic()
         self.envs = ParallelEnv(self.n_train_processes)
         self.optimizer = optim.Adam(self.model.parameters(),

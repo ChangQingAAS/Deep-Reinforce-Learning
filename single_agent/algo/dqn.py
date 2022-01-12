@@ -1,7 +1,6 @@
 import gym
 import collections
 import random
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -76,9 +75,11 @@ class DQN_ALGO():
         self.optimizer = optim.Adam(self.q.parameters(), lr=self.learning_rate)
         self.batch_size = params["batch_size"]
 
+        self.init_write()
+
     def init_write(self):
         with open("./result/DQN.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward\n")
+            f.write("epoch_number,average reward\n")
 
     def train_(self, q, q_target, memory, optimizer):
         for i in range(10):
@@ -98,8 +99,8 @@ class DQN_ALGO():
         self.init_write()
         score = 0.0
         for n_epi in range(self.epoch):
-            epsilon = max(0.01, 0.08 - 0.01 *
-                          (n_epi / 200))  #Linear annealing from 8% to 1%
+            #Linear annealing from 8% to 1%
+            epsilon = max(0.01, 0.08 - 0.01 * (n_epi / 200))
             s = self.env.reset()
             done = False
 
@@ -107,7 +108,7 @@ class DQN_ALGO():
                 a = self.q.sample_action(torch.from_numpy(s).float(), epsilon)
                 s_prime, r, done, info = self.env.step(a)
                 done_mask = 0.0 if done else 1.0
-                self.memory.put((s, a, r / 100.0, s_prime, done_mask))
+                self.memory.put((s, a, r, s_prime, done_mask))
                 s = s_prime
 
                 score += r
@@ -117,11 +118,11 @@ class DQN_ALGO():
             if self.memory.size() > 2000:
                 self.train_(self.q, self.q_target, self.memory, self.optimizer)
 
-            with open("./result/DQN.csv", "a+", encoding="utf-8") as f:
-                f.write("{},{}\n".format(n_epi, score))
-
             if n_epi % self.print_interval == 0:
                 self.q_target.load_state_dict(self.q.state_dict())
+                with open("./result/DQN.csv", "a+", encoding="utf-8") as f:
+                    f.write("{},{}\n".format(n_epi,
+                                             score / self.print_interval))
                 print(
                     "n_episode :{}, score : {:.1f}, n_buffer : {}, eps : {:.1f}%"
                     .format(n_epi, score / self.print_interval,

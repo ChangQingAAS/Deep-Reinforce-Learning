@@ -37,7 +37,7 @@ def train(global_model, rank, learning_rate, gamma, max_train_ep,
 
     optimizer = optim.Adam(global_model.parameters(), lr=learning_rate)
 
-    env = gym.make('CartPole-v1')
+    env = gym.make(params['gym_env'])
 
     for n_epi in range(max_train_ep):
         done = False
@@ -105,7 +105,7 @@ def test(global_model, max_test_ep):
             score += r
 
         with open("./result/a3c.csv", "a+", encoding="utf-8") as f:
-            f.write("{},{}\n".format(n_epi, score ))
+            f.write("{},{}\n".format(n_epi, score))
 
         time.sleep(1)
     env.close()
