@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import sys
+
 sys.path.append(".")
 from args.config import default_params as params
 
@@ -87,8 +88,7 @@ class OrnsteinUhlenbeckNoise():
         return x
 
 
-def train_(mu, mu_target, q, q_target, memory, q_optimizer, mu_optimizer,
-           batch_size, gamma, tau):
+def train_(mu, mu_target, q, q_target, memory, q_optimizer, mu_optimizer, batch_size, gamma, tau):
 
     s, a, r, s_prime, done_mask = memory.sample(batch_size)
     # print("s_prime.shape is ", s_prime.shape)
@@ -134,10 +134,8 @@ class ddpg_algo():
             f.write("epoch_number,average reward\n")
 
     def soft_update(self, net, net_target):
-        for param_target, param in zip(net_target.parameters(),
-                                       net.parameters()):
-            param_target.data.copy_(param_target.data * (1.0 - self.tau) +
-                                    param.data * self.tau)
+        for param_target, param in zip(net_target.parameters(), net.parameters()):
+            param_target.data.copy_(param_target.data * (1.0 - self.tau) + param.data * self.tau)
 
     def train(self):
         score = 0.0
@@ -156,18 +154,15 @@ class ddpg_algo():
 
             if self.memory.size() > 2000:
                 for i in range(10):
-                    train_(self.mu, self.mu_target, self.q, self.q_target,
-                           self.memory, self.q_optimizer, self.mu_optimizer,
-                           self.batch_size, self.gamma, self.tau)
+                    train_(self.mu, self.mu_target, self.q, self.q_target, self.memory, self.q_optimizer,
+                           self.mu_optimizer, self.batch_size, self.gamma, self.tau)
                     self.soft_update(self.mu, self.mu_target)
                     self.soft_update(self.q, self.q_target)
 
             if n_epi % self.print_interval == 0:
                 with open("./result/DDPG.csv", "a+", encoding="utf-8") as f:
-                    f.write("{},{}\n".format(n_epi,
-                                             score / self.print_interval))
-                print("n_episode :{}, score : {:.1f}".format(
-                    n_epi, score / self.print_interval))
+                    f.write("{},{}\n".format(n_epi, score / self.print_interval))
+                print("n_episode :{}, score : {:.1f}".format(n_epi, score / self.print_interval))
                 score = 0.0
 
         self.env.close()

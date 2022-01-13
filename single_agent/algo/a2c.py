@@ -7,6 +7,7 @@ from torch.distributions import Categorical
 import torch.multiprocessing as mp
 import numpy as np
 import sys
+
 sys.path.append(".")
 from args.config import default_params as params
 
@@ -67,11 +68,8 @@ class ParallelEnv:
         master_ends, worker_ends = zip(*[mp.Pipe() for _ in range(self.nenvs)])
         self.master_ends, self.worker_ends = master_ends, worker_ends
 
-        for worker_id, (master_end,
-                        worker_end) in enumerate(zip(master_ends,
-                                                     worker_ends)):
-            p = mp.Process(target=worker,
-                           args=(worker_id, master_end, worker_end))
+        for worker_id, (master_end, worker_end) in enumerate(zip(master_ends, worker_ends)):
+            p = mp.Process(target=worker, args=(worker_id, master_end, worker_end))
             p.daemon = True
             p.start()
             self.workers.append(p)
@@ -156,8 +154,7 @@ class a2c_algo():
         self.print_interval = self.update_interval * 10
         self.model = ActorCritic()
         self.envs = ParallelEnv(self.n_train_processes)
-        self.optimizer = optim.Adam(self.model.parameters(),
-                                    lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def init_write(self):
         with open("./result/a2c.csv", "w+", encoding="utf-8") as f:
@@ -187,8 +184,7 @@ class a2c_algo():
             td_target = compute_target(v_final, r_lst, mask_lst, self.gamma)
 
             td_target_vec = td_target.reshape(-1)
-            s_vec = torch.tensor(s_lst).float().reshape(
-                -1, 4)  # 4 == Dimension of state
+            s_vec = torch.tensor(s_lst).float().reshape(-1, 4)  # 4 == Dimension of state
             a_vec = torch.tensor(a_lst).reshape(-1).unsqueeze(1)
             advantage = td_target_vec - self.model.v(s_vec).reshape(-1)
 
