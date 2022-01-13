@@ -152,7 +152,7 @@ class ppo_continuous_algo():
 
     def init_write(self):
         with open("./result/ppo_continuous.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward,optimization_steps\n")
+            f.write("epoch_number,average reward,optimization_steps\n")
 
     def train(self):
         for n_epi in range(self.epoch):
@@ -180,10 +180,17 @@ class ppo_continuous_algo():
 
                 self.model.train_net()
 
-            with open("./result/ppo_continuous.csv", "a+",
-                      encoding="utf-8") as f:
-                f.write("{},{:.1f},{}\n".format(n_epi, score,
-                                                self.model.optimization_step))
+            if n_epi % self.print_interval == 0:
+                print("episode :{}, avg score : {:.1f}, opt step: {}".
+                      format(n_epi, score / self.print_interval,
+                             self.model.optimization_step))
+                with open("./result/ppo_continuous.csv",
+                          "a+",
+                          encoding="utf-8") as f:
+                    f.write("{},{:.1f},{}\n".format(
+                        n_epi, score / self.print_interval,
+                        self.model.optimization_step))
+            score = 0.0
 
         self.env.close()
 

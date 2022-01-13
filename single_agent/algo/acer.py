@@ -135,7 +135,7 @@ class acer_algo():
 
     def init_write(self):
         with open("./result/acer.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward\n")
+            f.write("epoch_number,average reward\n")
 
     def train(self):
         self.init_write()
@@ -149,8 +149,7 @@ class acer_algo():
                     prob = self.model.pi(torch.from_numpy(s).float())
                     a = Categorical(prob).sample().item()
                     s_prime, r, done, info = self.env.step(a)
-                    seq_data.append(
-                        (s, a, r / 100.0, prob.detach().numpy(), done))
+                    seq_data.append((s, a, r, prob.detach().numpy(), done))
 
                     score += r
                     s = s_prime
@@ -168,8 +167,13 @@ class acer_algo():
                     train(self.model, self.optimizer, self.memory, self.gamma,
                           self.c)
 
-            with open("./result/acer.csv", "a+", encoding="utf-8") as f:
-                f.write("{},{}\n".format(n_epi, score))
+            if n_epi % self.print_interval == 0:
+                with open("./result/acer.csv", "a+", encoding="utf-8") as f:
+                    f.write("{},{}\n".format(n_epi,
+                                             score / self.print_interval))
+                print("n_episode :{}, score : {:.1f}".format(
+                    n_epi, score / self.print_interval))
+                score = 0.0
         self.env.close()
 
 

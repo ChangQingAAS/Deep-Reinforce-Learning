@@ -115,6 +115,7 @@ class ppo_lstm_algo():
         self.gamma = params['gamma']
         self.eps_clip = params['eps_clip']
         self.lmbda = params['lmbda']
+        self.print_interval = params["print_interval"]
         self.model = PPO(self.learning_rate, self.K_epoch, self.gamma,
                          self.lmbda, self.eps_clip)
 
@@ -123,7 +124,7 @@ class ppo_lstm_algo():
 
     def init_write(self):
         with open("./result/ppo_lstm.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward\n")
+            f.write("epoch_number,average reward\n")
 
     def train(self):
         score = 0.0
@@ -143,8 +144,8 @@ class ppo_lstm_algo():
                     a = m.sample().item()
                     s_prime, r, done, info = self.env.step(a)
 
-                    self.model.put_data((s, a, r / 100.0, s_prime,
-                                         prob[a].item(), h_in, h_out, done))
+                    self.model.put_data(
+                        (s, a, r, s_prime, prob[a].item(), h_in, h_out, done))
                     s = s_prime
 
                     score += r
@@ -153,13 +154,14 @@ class ppo_lstm_algo():
 
                 self.model.train_net()
 
-            # if n_epi % self.print_interval == 0 and n_epi != 0:
-            #     print("# of episode :{}, avg score : {:.1f}".format(
-            #         n_epi, score / self.print_interval))
-
-            with open("./result/ppo_lstm.csv", "a+",
-                      encoding="utf-8") as f:
-                f.write("{},{:.1f} \n".format(n_epi, score))
+            if n_epi % self.print_interval == 0:
+                with open("./result/ppo_lstm.csv", "a+",
+                          encoding="utf-8") as f:
+                    f.write("{},{:.1f} \n".format(n_epi,
+                                                  score / self.print_interval))
+                print("episode :{}, avg score : {:.1f}".format(
+                    n_epi, score / self.print_interval))
+                score = 0.0
 
         self.env.close()
 

@@ -13,15 +13,16 @@
 1. REINFORCE
 2. Vanilla Actor-Aritic
 3. DQN(including replay memory and target network)
+4. DDPG( including OU noise and soft target update)
+5. PPO (including GAE)
+6. acer
 
-
-4. [PPO](https://github.com/seungeunrho/minimalRL/blob/master/ppo.py) (  including GAE)
-5. [DDPG](https://github.com/seungeunrho/minimalRL/blob/master/ddpg.py) ( including OU noise and soft target update)
-6. [A3C](https://github.com/seungeunrho/minimalRL/blob/master/a3c.py) ( 
-7.  [ACER](https://github.com/seungeunrho/minimalRL/blob/master/acer.py)  
-8.  [A2C](https://github.com/seungeunrho/minimalRL/blob/master/a2c.py)  
-9.  [SAC](https://github.com/seungeunrho/minimalRL/blob/master/sac.py)  
-10. [PPO-Continuous](https://github.com/seungeunrho/minimalRL/blob/master/ppo-continuous.py)   
+7. [A3C](https://github.com/seungeunrho/minimalRL/blob/master/a3c.py) ( 
+9.  [A2C](https://github.com/seungeunrho/minimalRL/blob/master/a2c.py)  
+10. [SAC](https://github.com/seungeunrho/minimalRL/blob/master/sac.py)  
+11. PPO-Continuous 
+12. PPO-LSTM
+13. vtrace
 
 
 

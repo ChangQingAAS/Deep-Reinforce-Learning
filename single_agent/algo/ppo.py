@@ -6,7 +6,7 @@ import torch.optim as optim
 from torch.distributions import Categorical
 import sys
 sys.path.append(".")
-from args.config import ppo_params as params
+from args.config import default_params as params
 
 
 class PPO(nn.Module):
@@ -96,7 +96,6 @@ class ppo_algo():
         super(ppo_algo, self).__init__()
         self.env = gym.make(params['gym_env'])
         self.print_interval = params["print_interval"]
-        self.score = params["score"]
         self.epoch = params["epoch"]
         self.learning_rate = params["learning_rate"]
         self.gamma = params["gamma"]
@@ -107,9 +106,11 @@ class ppo_algo():
         self.model = PPO(self.learning_rate, self.gamma, self.lmbda,
                          self.K_epoch, self.T_horizon, self.eps_clip)
 
+        self.init_write()
+
     def init_write(self):
         with open("./result/ppo.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward\n")
+            f.write("epoch_number,average reward\n")
 
     def train(self):
         score = 0.0
@@ -124,7 +125,7 @@ class ppo_algo():
                     s_prime, r, done, info = self.env.step(a)
 
                     self.model.put_data(
-                        (s, a, r / 100.0, s_prime, prob[a].item(), done))
+                        (s, a, r, s_prime, prob[a].item(), done))
                     s = s_prime
 
                     score += r
@@ -133,9 +134,12 @@ class ppo_algo():
 
                 self.model.train_net()
 
-            if n_epi % self.print_interval == 0 and n_epi != 0:
-                print("# of episode :{}, avg score : {:.1f}".format(
+            if n_epi % self.print_interval == 0:
+                print("episode :{}, avg score : {:.1f}".format(
                     n_epi, score / self.print_interval))
+                with open("./result/PPO.csv", "a+", encoding="utf-8") as f:
+                    f.write("{},{}\n".format(n_epi,
+                                             score / self.print_interval))
                 score = 0.0
 
         self.env.close()

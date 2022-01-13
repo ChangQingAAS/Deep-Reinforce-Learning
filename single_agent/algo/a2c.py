@@ -176,7 +176,7 @@ class a2c_algo():
 
                 s_lst.append(s)
                 a_lst.append(a)
-                r_lst.append(r / 100.0)
+                r_lst.append(r)
                 mask_lst.append(1 - done)
 
                 s = s_prime

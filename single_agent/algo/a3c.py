@@ -8,7 +8,7 @@ import torch.multiprocessing as mp
 import time
 import sys
 sys.path.append(".")
-from args.config import a3c_params as params
+from args.config import default_params as params
 
 
 class ActorCritic(nn.Module):
@@ -52,7 +52,7 @@ def train(global_model, rank, learning_rate, gamma, max_train_ep,
 
                 s_lst.append(s)
                 a_lst.append([a])
-                r_lst.append(r / 100.0)
+                r_lst.append(r)
 
                 s = s_prime
                 if done:
@@ -90,7 +90,7 @@ def train(global_model, rank, learning_rate, gamma, max_train_ep,
 def test(global_model, max_test_ep):
     env = gym.make(params['gym_env'])
     score = 0.0
-    print_interval = 20
+    print_interval = params['print_interval']
 
     for n_epi in range(max_test_ep):
         done = False
@@ -103,11 +103,13 @@ def test(global_model, max_test_ep):
             s_prime, r, done, info = env.step(a)
             s = s_prime
             score += r
-
-        with open("./result/a3c.csv", "a+", encoding="utf-8") as f:
-            f.write("{},{}\n".format(n_epi, score))
-
-        time.sleep(1)
+        if n_epi % print_interval == 0:
+            with open("./result/a3c.csv", "a+", encoding="utf-8") as f:
+                f.write("{},{}\n".format(n_epi, score / print_interval))
+            print("episode :{}, average score : {:.1f}".format(n_epi,
+                                                       score / print_interval))
+            score = 0.0
+            time.sleep(1)
     env.close()
 
 
@@ -126,7 +128,7 @@ class a3c_algo():
 
     def init_write(self):
         with open("./result/a3c.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward\n")
+            f.write("epoch_number,average reward\n")
 
     def train(self):
         self.init_write()
