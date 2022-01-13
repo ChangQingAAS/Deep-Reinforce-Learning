@@ -3,7 +3,6 @@
 - 每个算法由一个文件编写.
 - 环境都为“CartPole-v1”，参数一致
 
-
 ## 依赖
 1. PyTorch
 2. OpenAI GYM
@@ -17,13 +16,12 @@
 5. PPO (including GAE)
 6. acer
 
-7. [A3C](https://github.com/seungeunrho/minimalRL/blob/master/a3c.py) ( 
-9.  [A2C](https://github.com/seungeunrho/minimalRL/blob/master/a2c.py)  
-10. [SAC](https://github.com/seungeunrho/minimalRL/blob/master/sac.py)  
+7. A3C 
+8. vtrace
+9.  A2C 
+10. SAC
 11. PPO-Continuous 
 12. PPO-LSTM
-13. vtrace
-
 
 
 ## 运行方式
