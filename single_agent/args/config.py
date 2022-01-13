@@ -13,7 +13,7 @@ default_params = {
     "n_train_processes": 3,
     "update_interval": 5,
     "max_train_steps": 60000,
-    "print_interval": 50,
+    "print_interval": 100,
     "max_train_ep": 10000,
     "max_test_ep": 400,
     "lr_mu": 0.0005,
