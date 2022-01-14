@@ -9,7 +9,7 @@ import time
 import numpy as np
 import sys
 sys.path.append(".")
-from args.config import ppo_lstm_params as params
+from args.config import PPO_lstm_params as params
 
 
 class PPO(nn.Module):
@@ -104,9 +104,9 @@ class PPO(nn.Module):
             self.optimizer.step()
 
 
-class ppo_lstm_algo():
+class PPO_lstm_algo():
     def __init__(self):
-        super(ppo_lstm_algo, self).__init__()
+        super(PPO_lstm_algo, self).__init__()
         self.env = gym.make(params['gym_env'])
         self.T_horizon = params['T_horizon']
         self.epoch = params['epoch']
@@ -123,7 +123,7 @@ class ppo_lstm_algo():
         self.init_write()
 
     def init_write(self):
-        with open("./result/ppo_lstm.csv", "w+", encoding="utf-8") as f:
+        with open("./result/PPO_lstm.csv", "w+", encoding="utf-8") as f:
             f.write("epoch_number,average reward\n")
 
     def train(self):
@@ -155,7 +155,7 @@ class ppo_lstm_algo():
                 self.model.train_net()
 
             if n_epi % self.print_interval == 0:
-                with open("./result/ppo_lstm.csv", "a+",
+                with open("./result/PPO_lstm.csv", "a+",
                           encoding="utf-8") as f:
                     f.write("{},{:.1f} \n".format(n_epi,
                                                   score / self.print_interval))
@@ -167,5 +167,5 @@ class ppo_lstm_algo():
 
 
 if __name__ == '__main__':
-    algo = ppo_lstm_algo()
+    algo = PPO_lstm_algo()
     algo.train()

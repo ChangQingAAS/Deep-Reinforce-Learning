@@ -33,7 +33,7 @@ vtrace_params = {
     "epoch": 10000,
 }
 
-ppo_lstm_params = {
+PPO_lstm_params = {
     "gym_env": 'CartPole-v1',
     "print_interval": 50,
     "learning_rate": 0.0005,  ##
@@ -81,7 +81,7 @@ acer_params = {
 }
 
 # ---------------------   'Pendulum-v0'------------------------------------
-ppo_continuous_params = {
+PPO_continuous_params = {
     "gym_env": 'Pendulum-v0',  ###
     "print_interval": 50,  ##
     "learning_rate": 0.0003,  ##

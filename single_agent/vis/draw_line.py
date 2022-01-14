@@ -49,7 +49,7 @@ def draw_all(algo_list, color, x, y, env):
 
 if __name__ == "__main__":
     env = "CartPole-v1"
-    algo_list = ['PPO', 'REINFORCE', 'DQN', "DDPG", "vtrace", 'ActorCritic', "acer", "a3c", "ppo_lstm"]
+    algo_list = ['PPO', 'REINFORCE', 'DQN', "DDPG", "vtrace", 'ActorCritic', "acer", "a3c", "PPO_lstm"]
     x, y = get_all_data(algo_list)
     color = sns.hls_palette(len(algo_list), l=.5, s=.5)  # l-亮度 lightness s-饱和 saturation
     draw_single(algo_list, color, x, y, env)

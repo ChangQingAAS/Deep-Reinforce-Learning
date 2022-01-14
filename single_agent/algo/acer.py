@@ -12,7 +12,7 @@ from args.config import acer_params as params
 
 # Characteristics
 # 1. Discrete action space, single thread version.
-# 2. Does not support trust-region updates.
+# 2. Does not suPPOrt trust-region updates.
 
 
 class ReplayBuffer():

@@ -7,7 +7,7 @@ from torch.distributions import Normal
 import numpy as np
 import sys
 sys.path.append(".")
-from args.config import ppo_continuous_params as params
+from args.config import PPO_continuous_params as params
 
 
 class PPO(nn.Module):
@@ -127,9 +127,9 @@ class PPO(nn.Module):
                     self.optimization_step += 1
 
 
-class ppo_continuous_algo():
+class PPO_continuous_algo():
     def __init__(self):
-        super(ppo_continuous_algo, self).__init__()
+        super(PPO_continuous_algo, self).__init__()
         self.env = gym.make(params['gym_env'])
         self.rollout_len = params['rollout_len']
         self.epoch = params['epoch']
@@ -151,7 +151,7 @@ class ppo_continuous_algo():
         self.init_write()
 
     def init_write(self):
-        with open("./result/ppo_continuous.csv", "w+", encoding="utf-8") as f:
+        with open("./result/PPO_continuous.csv", "w+", encoding="utf-8") as f:
             f.write("epoch_number,average reward,optimization_steps\n")
 
     def train(self):
@@ -184,7 +184,7 @@ class ppo_continuous_algo():
                 print("episode :{}, avg score : {:.1f}, opt step: {}".
                       format(n_epi, score / self.print_interval,
                              self.model.optimization_step))
-                with open("./result/ppo_continuous.csv",
+                with open("./result/PPO_continuous.csv",
                           "a+",
                           encoding="utf-8") as f:
                     f.write("{},{:.1f},{}\n".format(
@@ -196,5 +196,5 @@ class ppo_continuous_algo():
 
 
 if __name__ == '__main__':
-    algo = ppo_continuous_algo()
+    algo = PPO_continuous_algo()
     algo.train()

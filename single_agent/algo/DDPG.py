@@ -106,9 +106,9 @@ def train_(mu, mu_target, q, q_target, memory, q_optimizer, mu_optimizer, batch_
     mu_optimizer.step()
 
 
-class ddpg_algo():
+class DDPG_algo():
     def __init__(self):
-        super(ddpg_algo, self).__init__()
+        super(DDPG_algo, self).__init__()
         self.env = gym.make(params['gym_env'])
         self.buffer_limit = params['buffer_limit']
         self.memory = ReplayBuffer(self.buffer_limit)
@@ -169,5 +169,5 @@ class ddpg_algo():
 
 
 if __name__ == '__main__':
-    algo = ddpg_algo()
+    algo = DDPG_algo()
     algo.train()

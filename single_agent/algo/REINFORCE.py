@@ -8,10 +8,11 @@ from torch.distributions import Categorical
 import sys
 sys.path.append(".")
 from args.config import default_params as params
+import time
 
 
 class Policy(nn.Module):
-    def __init__(self, learning_rate, gamma):
+    def __init__(self, learning_rate, gamma): 
         super(Policy, self).__init__()
         self.learning_rate = learning_rate
         self.gamma = gamma
@@ -86,5 +87,9 @@ class REINFORCE_ALGO():
 
 
 if __name__ == "__main__":
+    print(time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime()))
+
     algo = REINFORCE_ALGO()
     algo.train()
+    print(time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime()))
+

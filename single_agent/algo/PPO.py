@@ -91,9 +91,9 @@ class PPO(nn.Module):
             self.optimizer.step()
 
 
-class ppo_algo():
+class PPO_algo():
     def __init__(self):
-        super(ppo_algo, self).__init__()
+        super(PPO_algo, self).__init__()
         self.env = gym.make(params['gym_env'])
         self.print_interval = params["print_interval"]
         self.epoch = params["epoch"]
@@ -109,7 +109,7 @@ class ppo_algo():
         self.init_write()
 
     def init_write(self):
-        with open("./result/ppo.csv", "w+", encoding="utf-8") as f:
+        with open("./result/PPO.csv", "w+", encoding="utf-8") as f:
             f.write("epoch_number,average reward\n")
 
     def train(self):
@@ -146,5 +146,5 @@ class ppo_algo():
 
 
 if __name__ == '__main__':
-    algo = ppo_algo()
+    algo = PPO_algo()
     algo.train()
