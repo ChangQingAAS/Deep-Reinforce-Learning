@@ -5,13 +5,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 import sys
+
 sys.path.append(".")
-from args.config import default_params as params
+from args.config import ppo_params as params
 
 
 class PPO(nn.Module):
-    def __init__(self, learning_rete, gamma, lmbda, K_epoch, T_horizon,
-                 eps_clip):
+
+    def __init__(self, learning_rete, gamma, lmbda, K_epoch, T_horizon, eps_clip, in_dim, out_dim):
         super(PPO, self).__init__()
         self.learning_rate = learning_rete
         self.gamma = gamma
@@ -21,9 +22,9 @@ class PPO(nn.Module):
         self.eps_clip = eps_clip
         self.data = []
 
-        self.fc1 = nn.Linear(4, 256)
+        self.fc1 = nn.Linear(in_dim, 256)
         self.fc_pi = nn.Linear(256, 2)
-        self.fc_v = nn.Linear(256, 1)
+        self.fc_v = nn.Linear(256, out_dim)
         self.optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def pi(self, x, softmax_dim=0):
@@ -77,14 +78,11 @@ class PPO(nn.Module):
 
             pi = self.pi(s, softmax_dim=1)
             pi_a = pi.gather(1, a)
-            ratio = torch.exp(torch.log(pi_a) -
-                              torch.log(prob_a))  # a/b == exp(log(a)-log(b))
+            ratio = torch.exp(torch.log(pi_a) - torch.log(prob_a))  # a/b == exp(log(a)-log(b))
 
             surr1 = ratio * advantage
-            surr2 = torch.clamp(ratio, 1 - self.eps_clip,
-                                1 + self.eps_clip) * advantage
-            loss = -torch.min(surr1, surr2) + F.smooth_l1_loss(
-                self.v(s), td_target.detach())
+            surr2 = torch.clamp(ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
+            loss = -torch.min(surr1, surr2) + F.smooth_l1_loss(self.v(s), td_target.detach())
 
             self.optimizer.zero_grad()
             loss.mean().backward()
@@ -92,6 +90,7 @@ class PPO(nn.Module):
 
 
 class PPO_algo():
+
     def __init__(self):
         super(PPO_algo, self).__init__()
         self.env = gym.make(params['gym_env'])
@@ -103,46 +102,50 @@ class PPO_algo():
         self.K_epoch = params["K_epoch"]
         self.T_horizon = params["T_horizon"]
         self.eps_clip = params["eps_clip"]
-        self.model = PPO(self.learning_rate, self.gamma, self.lmbda,
-                         self.K_epoch, self.T_horizon, self.eps_clip)
+        self.train_number = params['train_number']
+        self.obs_dim = self.env.observation_space.shape[0]
+        self.action_dim = self.env.action_space.n
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(self.device)
+        self.model = PPO(self.learning_rate, self.gamma, self.lmbda, self.K_epoch, self.T_horizon, self.eps_clip,
+                         self.obs_dim, self.action_dim).to(self.device)
 
         self.init_write()
 
     def init_write(self):
-        with open("./result/PPO.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,average reward\n")
+        for i in range(self.train_number):
+            with open("./result/PPO/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
+                f.write("epoch_number,average reward\n")
 
     def train(self):
-        score = 0.0
-        for n_epi in range(10000):
-            s = self.env.reset()
-            done = False
-            while not done:
-                for t in range(self.T_horizon):
-                    prob = self.model.pi(torch.from_numpy(s).float())
-                    m = Categorical(prob)
-                    a = m.sample().item()
-                    s_prime, r, done, info = self.env.step(a)
+        for train_counter in range(self.train_number):
+            score = 0.0
+            for n_epi in range(self.epoch):
+                s = self.env.reset()
+                done = False
+                while not done:
+                    for t in range(self.T_horizon):
+                        prob = self.model.pi(torch.from_numpy(s).float())
+                        m = Categorical(prob)
+                        a = m.sample().item()
+                        s_prime, r, done, info = self.env.step(a)
 
-                    self.model.put_data(
-                        (s, a, r, s_prime, prob[a].item(), done))
-                    s = s_prime
+                        self.model.put_data((s, a, r, s_prime, prob[a].item(), done))
+                        s = s_prime
 
-                    score += r
-                    if done:
-                        break
+                        score += r
+                        if done:
+                            break
 
-                self.model.train_net()
+                    self.model.train_net()
 
-            if n_epi % self.print_interval == 0:
-                print("episode :{}, avg score : {:.1f}".format(
-                    n_epi, score / self.print_interval))
-                with open("./result/PPO.csv", "a+", encoding="utf-8") as f:
-                    f.write("{},{}\n".format(n_epi,
-                                             score / self.print_interval))
-                score = 0.0
+                if n_epi % self.print_interval == 0:
+                    print("episode :{}, avg score : {:.1f}".format(n_epi, score / self.print_interval))
+                    with open("./result/PPO/result_%s.csv" % str(train_counter), "a+", encoding="utf-8") as f:
+                        f.write("{},{}\n".format(n_epi, score / self.print_interval))
+                    score = 0.0
 
-        self.env.close()
+            self.env.close()
 
 
 if __name__ == '__main__':

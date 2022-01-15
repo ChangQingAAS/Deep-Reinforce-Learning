@@ -20,7 +20,6 @@ def get_all_data(algo_list):
                 average_reward.append(float(row['average reward']))
         x[algo].append(epoch_number)
         y[algo].append(average_reward)
-        y[algo].append([i + random.random() * i for i in average_reward])
     return x, y
 
 
@@ -36,6 +35,7 @@ def draw_single(algo_list, color, x, y, env):
 
 
 def draw_all(algo_list, color, x, y, env):
+    plt.cla()
     for i, algo in enumerate(reversed(algo_list)):
         sns.tsplot(time=x[algo], data=y[algo], condition=algo, linewidth=0.5, color=color[i])
         plt.ylabel('average reward', fontsize=10)
@@ -49,7 +49,8 @@ def draw_all(algo_list, color, x, y, env):
 
 if __name__ == "__main__":
     env = "CartPole-v1"
-    algo_list = ['PPO', 'REINFORCE', 'DQN', "DDPG", "vtrace", 'ActorCritic', "acer", "a3c", "PPO_lstm"]
+    # algo_list = ['PPO', 'REINFORCE', 'DQN', "DDPG", "vtrace", 'ActorCritic', "acer", "a3c", "PPO_lstm"]
+    algo_list = ['DQN', 'PPO']
     x, y = get_all_data(algo_list)
     color = sns.hls_palette(len(algo_list), l=.5, s=.5)  # l-亮度 lightness s-饱和 saturation
     draw_single(algo_list, color, x, y, env)

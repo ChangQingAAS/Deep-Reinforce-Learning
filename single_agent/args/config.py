@@ -13,7 +13,7 @@ default_params = {
     "n_train_processes": 3,
     "update_interval": 5,
     "max_train_steps": 60000,
-    "print_interval": 100,
+    "print_interval": 10,
     "max_train_ep": 10000,
     "max_test_ep": 400,
     "lr_mu": 0.0005,
@@ -46,14 +46,28 @@ PPO_lstm_params = {
 }
 
 dqn_params = {
-    "gym_env": 'CartPole-v1',
-    "print_interval": 100,
-    "learning_rate": 0.0005,  # 这里不一样
-    "gamma": 0.98,
-    "epoch": 10000,
-    "n_rollout": 10,
-    "buffer_limit": 50000,
-    "batch_size": 32
+    "gym_env": 'CartPole-v1',  # gym 环境
+    "print_interval": 50,  # 输出/写入间隔
+    "learning_rate": 0.0005,  # 学习率，这里给的比较高
+    "gamma": 0.98,  # 衰退因子
+    "epoch": 1000,  # 回合数
+    "n_rollout": 10,  # ？
+    "buffer_limit": 5000,  # buffer大小
+    "batch_size": 32,  # 批处理大小
+    "train_number": 5,  # 训练(测试）测试数
+}
+
+ppo_params = {
+    "gym_env": 'CartPole-v1',  # gym 环境
+    "print_interval": 50,  # 输出/写入间隔
+    "learning_rate": 0.0005,  # 学习率，这里给的比较高
+    "gamma": 0.98,  # 衰退因子
+    "epoch": 1000,  # 回合数
+    "lmbda": 0.95,
+    "eps_clip": 0.1,
+    "K_epoch": 3,
+    "T_horizon": 20,
+    "train_number": 5,  # 训练(测试）测试数
 }
 
 acer_params = {
@@ -65,8 +79,7 @@ acer_params = {
     "n_rollout": 10,
     "buffer_limit": 6000,  ###
     "rollout_len": 10,
-    "batch_size":
-    4,  # Indicates 4 sequences per mini-batch (4*rollout_len = 40 samples total)
+    "batch_size": 4,  # Indicates 4 sequences per mini-batch (4*rollout_len = 40 samples total)
     "c": 1.0,  # For truncating importance sampling ratio
     "lmbda": 0.95,
     "eps_clip": 0.1,

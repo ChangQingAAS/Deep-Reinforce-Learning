@@ -6,11 +6,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import sys
+
 sys.path.append(".")
 from args.config import dqn_params as params
 
 
 class ReplayBuffer():
+
     def __init__(self, buffer_limit):
         self.buffer = collections.deque(maxlen=buffer_limit)
 
@@ -38,16 +40,14 @@ class ReplayBuffer():
 
 
 class Qnet(nn.Module):
-    def __init__(self):
+
+    def __init__(self, in_dim, out_dim):
         super(Qnet, self).__init__()
-        self.fc1 = nn.Linear(4, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, 2)
+        self.layers = nn.Sequential(nn.Linear(in_dim, 128), nn.ReLU(), nn.Linear(128, 128), nn.ReLU(),
+                                    nn.Linear(128, out_dim))
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.layers(x)
         return x
 
     def sample_action(self, obs, epsilon):
@@ -60,6 +60,7 @@ class Qnet(nn.Module):
 
 
 class DQN_ALGO():
+
     def __init__(self):
         super(DQN_ALGO, self).__init__()
         self.env = gym.make(params['gym_env'])
@@ -68,21 +69,28 @@ class DQN_ALGO():
         self.learning_rate = params["learning_rate"]
         self.gamma = params["gamma"]
         self.n_rollout = params["n_rollout"]
-        self.q = Qnet()
-        self.q_target = Qnet()
-        self.q_target.load_state_dict(self.q.state_dict())
-        self.memory = ReplayBuffer(params["buffer_limit"])
-        self.optimizer = optim.Adam(self.q.parameters(), lr=self.learning_rate)
         self.batch_size = params["batch_size"]
+        self.train_number = params['train_number']
+        self.memory = ReplayBuffer(params["buffer_limit"])
+        self.obs_dim = self.env.observation_space.shape[0]
+        self.action_dim = self.env.action_space.n
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(self.device)
+        self.q = Qnet(self.obs_dim, self.action_dim).to(self.device)
+        self.q_target = Qnet(self.obs_dim, self.action_dim).to(self.device)
+        self.q_target.load_state_dict(self.q.state_dict())
+
+        self.optimizer = optim.Adam(self.q.parameters(), lr=self.learning_rate)
 
         self.init_write()
 
     def init_write(self):
-        with open("./result/DQN.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,average reward\n")
+        for i in range(self.train_number):
+            with open("./result/DQN/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
+                f.write("epoch_number,average reward\n")
 
     def train_(self, q, q_target, memory, optimizer):
-        for i in range(10):
+        for item in range(self.n_rollout):
             s, a, r, s_prime, done_mask = memory.sample(self.batch_size)
 
             q_out = q(s)
@@ -96,39 +104,37 @@ class DQN_ALGO():
             optimizer.step()
 
     def train(self):
-        score = 0.0
-        for n_epi in range(self.epoch):
-            #Linear annealing from 8% to 1%
-            epsilon = max(0.01, 0.08 - 0.01 * (n_epi / 200))
-            s = self.env.reset()
-            done = False
+        for train_counter in range(self.train_number):
+            score = 0.0
+            for n_epi in range(self.epoch):
+                #Linear annealing from 8% to 1%
+                epsilon = max(0.01, 0.08 - 0.01 * (n_epi / 200))
+                s = self.env.reset()
+                done = False
 
-            while not done:
-                a = self.q.sample_action(torch.from_numpy(s).float(), epsilon)
-                # print("action is ", a)
-                s_prime, r, done, info = self.env.step(a)
-                done_mask = 0.0 if done else 1.0
-                self.memory.put((s, a, r, s_prime, done_mask))
-                s = s_prime
+                while not done:
+                    a = self.q.sample_action(torch.from_numpy(s).float(), epsilon)
+                    # print("action is ", a)
+                    s_prime, r, done, info = self.env.step(a)
+                    done_mask = 0.0 if done else 1.0
+                    self.memory.put((s, a, r, s_prime, done_mask))
+                    s = s_prime
 
-                score += r
-                if done:
-                    break
+                    score += r
+                    if done:
+                        break
 
-            if self.memory.size() > 2000:
-                self.train_(self.q, self.q_target, self.memory, self.optimizer)
+                if self.memory.size() > 2000:
+                    self.train_(self.q, self.q_target, self.memory, self.optimizer)
 
-            if n_epi % self.print_interval == 0:
-                self.q_target.load_state_dict(self.q.state_dict())
-                with open("./result/DQN.csv", "a+", encoding="utf-8") as f:
-                    f.write("{},{}\n".format(n_epi,
-                                             score / self.print_interval))
-                print(
-                    "n_episode :{}, score : {:.1f}, n_buffer : {}, eps : {:.1f}%"
-                    .format(n_epi, score / self.print_interval,
-                            self.memory.size(), epsilon * 100))
-                score = 0.0
-        self.env.close()
+                if n_epi % self.print_interval == 0:
+                    self.q_target.load_state_dict(self.q.state_dict())
+                    with open("./result/DQN/result_%s.csv" % str(train_counter), "a+", encoding="utf-8") as f:
+                        f.write("{},{}\n".format(n_epi, score / self.print_interval))
+                    print("episode :{},average  score : {:.1f}, n_buffer : {}, eps : {:.1f}%".format(
+                        n_epi, score / self.print_interval, self.memory.size(), epsilon * 100))
+                    score = 0.0
+            self.env.close()
 
 
 if __name__ == '__main__':
