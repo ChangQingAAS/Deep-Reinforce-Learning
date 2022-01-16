@@ -1,123 +1,149 @@
-import gym
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
+import torch.nn.functional as F
 from torch.distributions import Categorical
+import gym
 import sys
+
 sys.path.append(".")
-from args.config import default_params as params
+from args.config import ac_params as params
 
 
-class ActorCritic(nn.Module):
-    def __init__(self, learning_rate, gamma):
-        super(ActorCritic, self).__init__()
-        self.learning_rate = learning_rate
-        self.gamma = gamma
-        self.data = []
+class Actor(nn.Module):
 
-        self.fc1 = nn.Linear(4, 256)
-        self.fc_pi = nn.Linear(256, 2)
-        self.fc_v = nn.Linear(256, 1)
-        self.optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
+    def __init__(self, input_size, output_size):
+        super(Actor, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 256)
+        self.fc3 = nn.Linear(256, output_size)
 
-    def pi(self, x, softmax_dim=0):
+    def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = self.fc_pi(x)
-        prob = F.softmax(x, dim=softmax_dim)
-        return prob
+        x = F.relu(self.fc2(x))
+        x = F.softmax(self.fc3(x), dim=1)
+        return x
 
-    def v(self, x):
+
+class Critic(nn.Module):
+
+    def __init__(self, input_size):
+        super(Critic, self).__init__()
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 256)
+        self.fc3 = nn.Linear(256, 1)
+
+    def forward(self, x):
         x = F.relu(self.fc1(x))
-        v = self.fc_v(x)
-        return v
-
-    def put_data(self, transition):
-        self.data.append(transition)
-
-    def make_batch(self):
-        s_lst, a_lst, r_lst, s_prime_lst, done_lst = [], [], [], [], []
-        for transition in self.data:
-            s, a, r, s_prime, done = transition
-            s_lst.append(s)
-            a_lst.append([a])
-            r_lst.append([r])
-            s_prime_lst.append(s_prime)
-            done_mask = 0.0 if done else 1.0
-            done_lst.append([done_mask])
-
-        s_batch, a_batch, r_batch, s_prime_batch, done_batch = torch.tensor(s_lst, dtype=torch.float), \
-                                                               torch.tensor(a_lst), \
-                                                               torch.tensor(r_lst, dtype=torch.float), \
-                                                               torch.tensor(s_prime_lst, dtype=torch.float), \
-                                                               torch.tensor(done_lst, dtype=torch.float)
-        self.data = []
-        return s_batch, a_batch, r_batch, s_prime_batch, done_batch
-
-    def train_net(self):
-        s, a, r, s_prime, done = self.make_batch()
-        td_target = r + self.gamma * self.v(s_prime) * done
-        delta = td_target - self.v(s)
-
-        pi = self.pi(s, softmax_dim=1)
-        pi_a = pi.gather(1, a)
-        loss = -torch.log(pi_a) * delta.detach() + F.smooth_l1_loss(
-            self.v(s), td_target.detach())
-
-        self.optimizer.zero_grad()
-        loss.mean().backward()
-        self.optimizer.step()
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
 
 class ActorCritic_ALGO():
-    def __init__(self):
-        super(ActorCritic_ALGO, self).__init__()
+
+    def __init__(self, path):
+        self.path = path
         self.env = gym.make(params['gym_env'])
-        self.print_interval = params["print_interval"]
-        self.epoch = params["epoch"]
-        self.learning_rate = params["learning_rate"]
-        self.gamma = params["gamma"]
-        self.n_rollout = params["n_rollout"]
-        self.model = ActorCritic(self.learning_rate, self.gamma)
+        self.gamma = params['gamma']
+        self.learning_rate = params['learning_rate']
+        self.obs_dim = self.env.observation_space.shape[0]
+        self.act_dim = self.env.action_space.n
+        self.actor = Actor(self.obs_dim, self.act_dim)
+        self.critic = Critic(self.obs_dim)
+        self.optimizer_actor = optim.Adam(self.actor.parameters(), self.learning_rate)
+        self.optimizer_critic = optim.Adam(self.critic.parameters(), self.learning_rate)
+        self.criterion = nn.MSELoss()
+        self.epoch = params['epoch']
+        self.batch_size = params['batch_size']
+        self.print_interval = params['print_interval']
+        self.train_number = params['train_number']
 
         self.init_write()
 
     def init_write(self):
-        with open("./result/actor_critic.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,average reward\n")
+        for i in range(self.train_number):
+            with open(self.path + "/result/AC/result_%s.csv" % str(i), "w+",
+                      encoding="utf-8") as f:
+                f.write("epoch_number,average reward\n")
 
     def train(self):
-        for n_epi in range(self.epoch):
-            score = 0.0
-            done = False
-            s = self.env.reset()
-            while not done:
-                for t in range(self.n_rollout):
-                    prob = self.model.pi(torch.from_numpy(s).float())
-                    m = Categorical(prob)
-                    a = m.sample().item()
-                    s_prime, r, done, info = self.env.step(a)
-                    self.model.put_data((s, a, r, s_prime, done))
+        for train_counter in range(self.train_number):
+            cumulative_reward = 0.0
+            rewards = []
+            states = []
+            next_states = []
+            dones = []
+            actions = []
 
-                    s = s_prime
-                    score += r
+            state = self.env.reset()
 
-                    if done:
-                        break
+            for episode_count in range(self.epoch):
+                state_t = torch.FloatTensor([state])
+                with torch.no_grad():
+                    probs = self.actor(state_t)
+                    dist = Categorical(probs)
+                    action = dist.sample().item()
 
-                self.model.train_net()
+                next_state, reward, done, _ = self.env.step(action)
+                cumulative_reward += reward
 
-            if n_epi % self.print_interval == 0:
-                with open("./result/actor_critic.csv", "a+",
-                          encoding="utf-8") as f:
-                    f.write("{},{}\n".format(n_epi,
-                                             score / self.print_interval))
-                print("episode :{}, avg_score : {:.1f}".format(
-                    n_epi, score / self.print_interval))
-                score = 0.0
-        self.env.close()
+                rewards.append([reward])
+                states.append(state)
+                actions.append([action])
+                next_states.append(next_state)
+                dones.append(done)
+
+                state = next_state
+
+                if len(rewards) == self.batch_size:
+                    rewards_t = torch.FloatTensor(rewards)
+                    actions_t = torch.LongTensor(actions)
+                    with torch.no_grad():
+                        next_states_t = torch.FloatTensor(next_states)
+                        states_t = torch.FloatTensor(states)
+                        next_states_v = self.critic(next_states_t)
+                        states_v = self.critic(states_t)
+                    next_states_v[dones] = 0.0
+                    td_errors = self.gamma * next_states_v + rewards_t - states_v
+
+                    self.optimizer_actor.zero_grad()
+                    log_probs = torch.log(torch.gather(self.actor(states_t), 1, actions_t))
+                    gradients = -td_errors * log_probs
+                    gradient = gradients.mean()
+                    gradient.backward()
+                    self.optimizer_actor.step()
+
+                    self.optimizer_critic.zero_grad()
+                    target = self.gamma * next_states_v + rewards_t
+                    outputs = self.critic(states_t)
+                    loss = self.criterion(outputs, target)
+                    loss.backward()
+                    self.optimizer_critic.step()
+
+                    rewards = []
+                    states = []
+                    next_states = []
+                    dones = []
+                    actions = []
+
+                if done and episode_count % self.print_interval == 0:
+                    state = self.env.reset()
+                    state_t = torch.FloatTensor([state])
+                    with open(self.path + "/result/AC/result_%s.csv" % str(train_counter),
+                              "a+",
+                              encoding="utf-8") as f:
+                        f.write("{},{}\n".format(episode_count,
+                                                 cumulative_reward / self.print_interval))
+
+                    print('episode %d, reward: %.3f' %
+                          (episode_count, cumulative_reward / self.print_interval))
+                    cumulative_reward = 0
+
+                self.env.close()
 
 
 if __name__ == '__main__':
-    algo = ActorCritic_ALGO()
+    path = sys.path[0].rsplit("/", 1)[0]
+    algo = ActorCritic_ALGO(path)
     algo.train()

@@ -15,16 +15,16 @@
 1. REINFORCE
 2. DQN(including replay memory and target network)
 3. PPO (including GAE)
+4. Actor Critic
 
 ### 连续动作 -》 “Pendulum-v1"
 
 1. DDPG(including OU noise and soft target update)
 2. SAC
 
-### TODO:
+### TODO: 
 
-1. Vanilla Actor-Aritic
-2. acer
+1. acer
 3. A3C
 4. vtrace
 5. A2C

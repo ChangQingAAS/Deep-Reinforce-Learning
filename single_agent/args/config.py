@@ -27,8 +27,8 @@ reinforce_params = {
     "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0005,  # 学习率，这里给的比较高
     "gamma": 0.98,  # 衰退因子
-    "epoch": 10000,  # 回合数 
-    "train_number": 5,  # 训练(测试）测试数
+    "epoch": 2000,  # 回合数 
+    "train_number": 1,  # 训练(测试）测试数
 }
 
 dqn_params = {
@@ -36,11 +36,11 @@ dqn_params = {
     "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0005,  # 学习率，这里给的比较高
     "gamma": 0.98,  # 衰退因子
-    "epoch": 10000,  # 回合数
+    "epoch": 2000,  # 回合数
     "n_rollout": 10,  # ？
     "buffer_limit": 5000,  # buffer大小
     "batch_size": 32,  # 批处理大小
-    "train_number": 5,  # 训练(测试）测试数
+    "train_number": 1,  # 训练(测试）测试数
 }
 
 ppo_params = {
@@ -48,12 +48,23 @@ ppo_params = {
     "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0005,  # 学习率，这里给的比较高
     "gamma": 0.98,  # 衰退因子
-    "epoch": 10000,  # 回合数
+    "epoch": 2000,  # 回合数
     "lmbda": 0.95,
     "eps_clip": 0.1,
     "K_epoch": 3,
     "T_horizon": 20,
-    "train_number": 5,  # 训练(测试）测试数
+    "train_number": 1,  # 训练(测试）测试数
+}
+
+ac_params = {
+    "gym_env": 'CartPole-v1',  # gym 环境
+    "print_interval": 20,  # 输出/写入间隔
+    "learning_rate": 0.0001,  # 学习率，这里给的比较高
+    "epoch": 2000,  # 回合数 
+    "gamma": 0.99,
+    "train_number": 1,  # 训练(测试）测试数
+    "n_rollout": 10,
+    'batch_size': 128
 }
 
 ddpg_params = {
@@ -65,8 +76,8 @@ ddpg_params = {
     "batch_size": 32,
     "buffer_limit": 50000,
     "tau": 0.005,  # for target network soft update
-    "epoch": 10000,  # 回合数
-    "train_number": 5,  # 训练(测试）测试数
+    "epoch": 2000,  # 回合数
+    "train_number": 1,  # 训练(测试）测试数
 }
 
 sac_params = {
@@ -78,11 +89,11 @@ sac_params = {
     "batch_size": 32,
     "buffer_limit": 50000,
     "print_interval": 20,
-    "epoch": 10000,
+    "epoch": 2000,
     "tau": 0.01,  # for target network soft update
     "target_entropy": -1.0,  # for automated alpha update
     "lr_alpha": 0.001,  # for automated alpha update
-    "train_number": 5,  # 训练(测试）测试数
+    "train_number": 1,  # 训练(测试）测试数
 }
 
 acer_params = {

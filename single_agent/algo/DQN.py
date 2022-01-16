@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import sys
+
 sys.path.append(".")
 from args.config import dqn_params as params
 
@@ -42,8 +43,8 @@ class Qnet(nn.Module):
 
     def __init__(self, in_dim, out_dim):
         super(Qnet, self).__init__()
-        self.layers = nn.Sequential(nn.Linear(in_dim, 128), nn.ReLU(), nn.Linear(128, 128), nn.ReLU(),
-                                    nn.Linear(128, out_dim))
+        self.layers = nn.Sequential(nn.Linear(in_dim, 128), nn.ReLU(), nn.Linear(128, 128),
+                                    nn.ReLU(), nn.Linear(128, out_dim))
 
     def forward(self, x):
         x = self.layers(x)
@@ -85,7 +86,8 @@ class DQN_ALGO():
 
     def init_write(self):
         for i in range(self.train_number):
-            with open(self.path + "/result/DQN/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
+            with open(self.path + "/result/DQN/result_%s.csv" % str(i), "w+",
+                      encoding="utf-8") as f:
                 f.write("epoch_number,average reward\n")
 
     def train_(self, q, q_target, memory, optimizer):
@@ -128,11 +130,13 @@ class DQN_ALGO():
 
                 if n_epi % self.print_interval == 0:
                     self.q_target.load_state_dict(self.q.state_dict())
-                    with open(self.path + "/result/DQN/result_%s.csv" % str(train_counter), "a+",
+                    with open(self.path + "/result/DQN/result_%s.csv" % str(train_counter),
+                              "a+",
                               encoding="utf-8") as f:
                         f.write("{},{}\n".format(n_epi, score / self.print_interval))
-                    print("episode :{},average  score : {:.1f}, n_buffer : {}, eps : {:.1f}%".format(
-                        n_epi, score / self.print_interval, self.memory.size(), epsilon * 100))
+                    print(
+                        "episode :{},average  score : {:.1f}, n_buffer : {}, eps : {:.1f}%".format(
+                            n_epi, score / self.print_interval, self.memory.size(), epsilon * 100))
                     score = 0.0
             self.env.close()
 

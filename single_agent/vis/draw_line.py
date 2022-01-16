@@ -27,7 +27,6 @@ def get_all_data(algo_list, path):
             y[algo].append(average_reward)
             if x[algo] == []:
                 x[algo].append(epoch_number)
-    print(x[algo], y[algo])
     return x, y
 
 
@@ -59,8 +58,8 @@ if __name__ == "__main__":
     path = sys.path[0].rsplit("/", 1)[0]
     env = "CartPole-v1"
     if env == 'CartPole-v1':
-        # algo_list = ["vtrace", 'ActorCritic', "acer", "a3c", "PPO_lstm"]
-        algo_list = ['REINFORCE', 'DQN', 'PPO']
+        # algo_list = ["vtrace",  "acer", "a3c", "PPO_lstm"]
+        algo_list = ['REINFORCE', 'DQN', 'PPO', 'AC']
     elif env == 'Pendulum-v1':
         algo_list = ['DDPG', 'SAC']
     x, y = get_all_data(algo_list, path)
