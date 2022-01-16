@@ -9,10 +9,11 @@ import torch.optim as optim
 import sys
 
 sys.path.append(".")
-from args.config import default_params as params
+from args.config import ddpg_params as params
 
 
 class ReplayBuffer():
+
     def __init__(self, buffer_limit):
         self.buffer_limit = buffer_limit
         self.buffer = collections.deque(maxlen=self.buffer_limit)
@@ -42,11 +43,12 @@ class ReplayBuffer():
 
 
 class MuNet(nn.Module):
-    def __init__(self):
+
+    def __init__(self, in_dim, out_dim):
         super(MuNet, self).__init__()
-        self.fc1 = nn.Linear(4, 128)
+        self.fc1 = nn.Linear(in_dim, 128)
         self.fc2 = nn.Linear(128, 64)
-        self.fc_mu = nn.Linear(64, 1)
+        self.fc_mu = nn.Linear(64, out_dim)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -59,10 +61,11 @@ class MuNet(nn.Module):
 
 
 class QNet(nn.Module):
-    def __init__(self):
+
+    def __init__(self, in_dim, out_dim):
         super(QNet, self).__init__()
-        self.fc_s = nn.Linear(4, 64)
-        self.fc_a = nn.Linear(1, 64)
+        self.fc_s = nn.Linear(in_dim, 64)
+        self.fc_a = nn.Linear(out_dim, 64)
         self.fc_q = nn.Linear(128, 32)
         self.fc_out = nn.Linear(32, 1)
 
@@ -76,6 +79,7 @@ class QNet(nn.Module):
 
 
 class OrnsteinUhlenbeckNoise():
+
     def __init__(self, mu):
         self.theta, self.dt, self.sigma = 0.1, 0.01, 0.1
         self.mu = mu
@@ -107,14 +111,20 @@ def train_(mu, mu_target, q, q_target, memory, q_optimizer, mu_optimizer, batch_
 
 
 class DDPG_algo():
-    def __init__(self):
+
+    def __init__(self, path):
         super(DDPG_algo, self).__init__()
+        self.path = path
         self.env = gym.make(params['gym_env'])
         self.buffer_limit = params['buffer_limit']
         self.memory = ReplayBuffer(self.buffer_limit)
-        self.q, self.q_target = QNet(), QNet()
+        self.obs_dim = self.env.observation_space.shape[0]
+        self.action_dim = self.env.action_space.shape[0]
+        self.q = QNet(self.obs_dim, self.action_dim)
+        self.q_target = QNet(self.obs_dim, self.action_dim)
         self.q_target.load_state_dict(self.q.state_dict())
-        self.mu, self.mu_target = MuNet(), MuNet()
+        self.mu = MuNet(self.obs_dim, self.action_dim)
+        self.mu_target = MuNet(self.obs_dim, self.action_dim)
         self.mu_target.load_state_dict(self.mu.state_dict())
         self.lr_mu = params['lr_mu']
         self.lr_q = params['lr_q']
@@ -126,48 +136,59 @@ class DDPG_algo():
         self.gamma = params['gamma']
         self.tau = params['tau']
         self.print_interval = params['print_interval']
+        self.train_number = params['train_number']
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.init_write()
 
     def init_write(self):
-        with open("./result/DDPG.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,average reward\n")
+        for i in range(self.train_number):
+            with open(self.path + "/result/DDPG/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
+                f.write("epoch_number,average reward\n")
 
     def soft_update(self, net, net_target):
         for param_target, param in zip(net_target.parameters(), net.parameters()):
             param_target.data.copy_(param_target.data * (1.0 - self.tau) + param.data * self.tau)
 
     def train(self):
-        score = 0.0
-        for n_epi in range(self.epoch):
-            s = self.env.reset()
-            done = False
+        for train_counter in range(self.train_number):
+            score = 0.0
+            for n_epi in range(self.epoch):
+                s = self.env.reset()
+                done = False
 
-            while not done:
-                a = self.mu(torch.from_numpy(s).float())
-                a = a.argmax().item()
-                # print("action is ", a)
-                s_prime, r, done, info = self.env.step(a)
-                self.memory.put((s, a, r, s_prime, done))
-                score += r
-                s = s_prime
+                while not done:
+                    a = self.mu(torch.from_numpy(s).float())
+                    if params['gym_env'] == "CartPole-V1":
+                        a = a.argmax().item() + self.ou_noise()[0]
+                        s_prime, r, done, info = self.env.step(a)
+                    elif params['gym_env'] == "Pendulum-v1":
+                        a = torch.tanh(a) * 2  # Multipled by 2 because the action space of the Pendulum-v0 is [-2,2]
+                        a = a.item() + self.ou_noise()[0]
+                        s_prime, r, done, info = self.env.step([a])
 
-            if self.memory.size() > 2000:
-                for i in range(10):
-                    train_(self.mu, self.mu_target, self.q, self.q_target, self.memory, self.q_optimizer,
-                           self.mu_optimizer, self.batch_size, self.gamma, self.tau)
-                    self.soft_update(self.mu, self.mu_target)
-                    self.soft_update(self.q, self.q_target)
+                    self.memory.put((s, a, r/100.0, s_prime, done))
+                    score += r
+                    s = s_prime
 
-            if n_epi % self.print_interval == 0:
-                with open("./result/DDPG.csv", "a+", encoding="utf-8") as f:
-                    f.write("{},{}\n".format(n_epi, score / self.print_interval))
-                print("n_episode :{}, score : {:.1f}".format(n_epi, score / self.print_interval))
-                score = 0.0
+                if self.memory.size() > 2000:
+                    for i in range(10):
+                        train_(self.mu, self.mu_target, self.q, self.q_target, self.memory, self.q_optimizer,
+                               self.mu_optimizer, self.batch_size, self.gamma, self.tau)
+                        self.soft_update(self.mu, self.mu_target)
+                        self.soft_update(self.q, self.q_target)
 
-        self.env.close()
+                if n_epi % self.print_interval == 0:
+                    with open(self.path + "/result/DDPG/result_%s.csv" % str(train_counter), "a+",
+                              encoding="utf-8") as f:
+                        f.write("{},{}\n".format(n_epi, score / self.print_interval))
+                    print("episode :{}, score : {:.1f}".format(n_epi, score / self.print_interval))
+                    score = 0.0
+
+            self.env.close()
 
 
 if __name__ == '__main__':
-    algo = DDPG_algo()
+    path = sys.path[0].rsplit("/", 1)[0]
+    algo = DDPG_algo(path)
     algo.train()

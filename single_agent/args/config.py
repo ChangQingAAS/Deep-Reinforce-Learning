@@ -22,27 +22,13 @@ default_params = {
 }
 
 # ---------------------------------------
-vtrace_params = {
-    "gym_env": 'CartPole-v1',
-    "print_interval": 50,
-    "learning_rate": 0.0005,  ##
-    "gamma": 0.98,
-    "clip_rho_threshold": 1.0,
-    "clip_c_threshold": 1.0,
-    "T_horizon": 20,
-    "epoch": 10000,
-}
-
-PPO_lstm_params = {
-    "gym_env": 'CartPole-v1',
-    "print_interval": 50,
-    "learning_rate": 0.0005,  ##
-    "gamma": 0.98,
-    "epoch": 10000,
-    "lmbda": 0.95,
-    "eps_clip": 0.1,
-    "K_epoch": 2,  ##
-    "T_horizon": 20,
+reinforce_params = {
+    "gym_env": 'CartPole-v1',  # gym 环境
+    "print_interval": 50,  # 输出/写入间隔
+    "learning_rate": 0.0005,  # 学习率，这里给的比较高
+    "gamma": 0.98,  # 衰退因子
+    "epoch": 10000,  # 回合数 
+    "train_number": 5,  # 训练(测试）测试数
 }
 
 dqn_params = {
@@ -50,7 +36,7 @@ dqn_params = {
     "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0005,  # 学习率，这里给的比较高
     "gamma": 0.98,  # 衰退因子
-    "epoch": 1000,  # 回合数
+    "epoch": 10000,  # 回合数
     "n_rollout": 10,  # ？
     "buffer_limit": 5000,  # buffer大小
     "batch_size": 32,  # 批处理大小
@@ -62,11 +48,40 @@ ppo_params = {
     "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0005,  # 学习率，这里给的比较高
     "gamma": 0.98,  # 衰退因子
-    "epoch": 1000,  # 回合数
+    "epoch": 10000,  # 回合数
     "lmbda": 0.95,
     "eps_clip": 0.1,
     "K_epoch": 3,
     "T_horizon": 20,
+    "train_number": 5,  # 训练(测试）测试数
+}
+
+ddpg_params = {
+    "gym_env": 'Pendulum-v1',  # gym 环境
+    "print_interval": 20,  # 输出/写入间隔
+    "lr_mu": 0.0005,  # 学习率，这里给的比较高
+    "lr_q": 0.001,
+    "gamma": 0.99,  # 衰退因子
+    "batch_size": 32,
+    "buffer_limit": 50000,
+    "tau": 0.005,  # for target network soft update
+    "epoch": 10000,  # 回合数
+    "train_number": 5,  # 训练(测试）测试数
+}
+
+sac_params = {
+    "gym_env": 'Pendulum-v1',
+    "lr_pi": 0.0005,
+    "lr_q": 0.001,
+    "init_alpha": 0.01,
+    "gamma": 0.98,
+    "batch_size": 32,
+    "buffer_limit": 50000,
+    "print_interval": 20,
+    "epoch": 10000,
+    "tau": 0.01,  # for target network soft update
+    "target_entropy": -1.0,  # for automated alpha update
+    "lr_alpha": 0.001,  # for automated alpha update
     "train_number": 5,  # 训练(测试）测试数
 }
 
@@ -108,18 +123,25 @@ PPO_continuous_params = {
     "minibatch_size": 32,
 }
 
-sac_params = {
-    "gym_env": 'Pendulum-v0',
-    "print_interval": 20,  ##
+vtrace_params = {
+    "gym_env": 'CartPole-v1',
+    "print_interval": 50,
+    "learning_rate": 0.0005,  ##
+    "gamma": 0.98,
+    "clip_rho_threshold": 1.0,
+    "clip_c_threshold": 1.0,
+    "T_horizon": 20,
+    "epoch": 10000,
+}
+
+PPO_lstm_params = {
+    "gym_env": 'CartPole-v1',
+    "print_interval": 50,
+    "learning_rate": 0.0005,  ##
     "gamma": 0.98,
     "epoch": 10000,
-    "batch_size": 32,
-    "buffer_limit": 50000,
-    "tau": 0.01,  # for target network soft update
-    "lr_pi": 0.0005,
-    "lr_q": 0.001,
-    "init_alpha": 0.01,
-    "buffer_limit": 50000,
-    "target_entropy": -1.0,  # for automated alpha update
-    "lr_alpha": 0.001  # for automated alpha update
+    "lmbda": 0.95,
+    "eps_clip": 0.1,
+    "K_epoch": 2,  ##
+    "T_horizon": 20,
 }

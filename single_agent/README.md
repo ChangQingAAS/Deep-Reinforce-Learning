@@ -1,31 +1,41 @@
 ## 实现基础的单智能体DRL算法
 
 - 每个算法由一个文件编写.
-- 环境都为“CartPole-v1”，参数一致
+- 尽量做到环境与参数一致
 
 ## 依赖
-1. PyTorch
+
+1. PyTorch 1.10
 2. OpenAI GYM
 
-
 ## 算法
+
+### 离散动作 - 》 “CartPole-v1”
+
 1. REINFORCE
-2. Vanilla Actor-Aritic
-3. DQN(including replay memory and target network)
-4. DDPG( including OU noise and soft target update)
-5. PPO (including GAE)
-6. acer
+2. DQN(including replay memory and target network)
+3. PPO (including GAE)
 
-7. A3C 
-8. vtrace
-9.  A2C 
-10. SAC
-11. PPO-Continuous 
-12. PPO-LSTM
+### 连续动作 -》 “Pendulum-v1"
 
+1. DDPG(including OU noise and soft target update)
+2. SAC
+
+### TODO:
+
+1. Vanilla Actor-Aritic
+2. acer
+3. A3C
+4. vtrace
+5. A2C
+6. PPO-Continuous
+7. PPO-LSTM
 
 ## 运行方式
-例如： 
-```bash  
-python3 REINFORCE.py 
+
+例如：
+
+```bash
+cd single_agent
+python3 algo/DQN.py 
 ```

@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 import sys
-
 sys.path.append(".")
 from args.config import ppo_params as params
 
@@ -91,8 +90,9 @@ class PPO(nn.Module):
 
 class PPO_algo():
 
-    def __init__(self):
+    def __init__(self, path):
         super(PPO_algo, self).__init__()
+        self.path = path
         self.env = gym.make(params['gym_env'])
         self.print_interval = params["print_interval"]
         self.epoch = params["epoch"]
@@ -106,7 +106,6 @@ class PPO_algo():
         self.obs_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(self.device)
         self.model = PPO(self.learning_rate, self.gamma, self.lmbda, self.K_epoch, self.T_horizon, self.eps_clip,
                          self.obs_dim, self.action_dim).to(self.device)
 
@@ -114,7 +113,7 @@ class PPO_algo():
 
     def init_write(self):
         for i in range(self.train_number):
-            with open("./result/PPO/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
+            with open(self.path + "/result/PPO/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
                 f.write("epoch_number,average reward\n")
 
     def train(self):
@@ -141,7 +140,8 @@ class PPO_algo():
 
                 if n_epi % self.print_interval == 0:
                     print("episode :{}, avg score : {:.1f}".format(n_epi, score / self.print_interval))
-                    with open("./result/PPO/result_%s.csv" % str(train_counter), "a+", encoding="utf-8") as f:
+                    with open(self.path + "/result/PPO/result_%s.csv" % str(train_counter), "a+",
+                              encoding="utf-8") as f:
                         f.write("{},{}\n".format(n_epi, score / self.print_interval))
                     score = 0.0
 
@@ -149,5 +149,6 @@ class PPO_algo():
 
 
 if __name__ == '__main__':
-    algo = PPO_algo()
+    path = sys.path[0].rsplit("/", 1)[0]
+    algo = PPO_algo(path)
     algo.train()

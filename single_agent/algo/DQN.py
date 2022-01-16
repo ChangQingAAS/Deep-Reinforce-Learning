@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import sys
-
 sys.path.append(".")
 from args.config import dqn_params as params
 
@@ -61,8 +60,9 @@ class Qnet(nn.Module):
 
 class DQN_ALGO():
 
-    def __init__(self):
+    def __init__(self, path):
         super(DQN_ALGO, self).__init__()
+        self.path = path
         self.env = gym.make(params['gym_env'])
         self.print_interval = params["print_interval"]
         self.epoch = params["epoch"]
@@ -75,7 +75,6 @@ class DQN_ALGO():
         self.obs_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(self.device)
         self.q = Qnet(self.obs_dim, self.action_dim).to(self.device)
         self.q_target = Qnet(self.obs_dim, self.action_dim).to(self.device)
         self.q_target.load_state_dict(self.q.state_dict())
@@ -86,7 +85,7 @@ class DQN_ALGO():
 
     def init_write(self):
         for i in range(self.train_number):
-            with open("./result/DQN/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
+            with open(self.path + "/result/DQN/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
                 f.write("epoch_number,average reward\n")
 
     def train_(self, q, q_target, memory, optimizer):
@@ -129,7 +128,8 @@ class DQN_ALGO():
 
                 if n_epi % self.print_interval == 0:
                     self.q_target.load_state_dict(self.q.state_dict())
-                    with open("./result/DQN/result_%s.csv" % str(train_counter), "a+", encoding="utf-8") as f:
+                    with open(self.path + "/result/DQN/result_%s.csv" % str(train_counter), "a+",
+                              encoding="utf-8") as f:
                         f.write("{},{}\n".format(n_epi, score / self.print_interval))
                     print("episode :{},average  score : {:.1f}, n_buffer : {}, eps : {:.1f}%".format(
                         n_epi, score / self.print_interval, self.memory.size(), epsilon * 100))
@@ -138,5 +138,6 @@ class DQN_ALGO():
 
 
 if __name__ == '__main__':
-    algo = DQN_ALGO()
+    path = sys.path[0].rsplit("/", 1)[0]
+    algo = DQN_ALGO(path)
     algo.train()

@@ -3,27 +3,35 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 import random
+import sys
+import os
 
 
-def get_all_data(algo_list):
+def get_all_data(algo_list, path):
     x = {}
     y = {}
     for algo in algo_list:
         x[algo] = []
         y[algo] = []
-        with open("result/%s.csv" % algo, "r+", encoding="utf-8") as csvfile:
-            epoch_number = []
-            average_reward = []
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                epoch_number.append(int(row['epoch_number']))
-                average_reward.append(float(row['average reward']))
-        x[algo].append(epoch_number)
-        y[algo].append(average_reward)
+        for items in os.walk(path + '/result/%s' % algo):
+            files = sorted(items[2])  #当前路径下所有非目录子文件
+        for item in files:
+            with open(path + '/result/%s/' % algo + item, "r+", encoding="utf-8") as csvfile:
+                epoch_number = []
+                average_reward = []
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    average_reward.append(float(row['average reward']))
+                    if x[algo] == []:
+                        epoch_number.append(int(row['epoch_number']))
+            y[algo].append(average_reward)
+            if x[algo] == []:
+                x[algo].append(epoch_number)
+    print(x[algo], y[algo])
     return x, y
 
 
-def draw_single(algo_list, color, x, y, env):
+def draw_single(algo_list, color, x, y, env, path):
     for i, algo in enumerate(algo_list):
         plt.cla()
         sns.tsplot(time=x[algo], data=y[algo], condition=algo, linewidth=0.5, color=color[i])
@@ -31,10 +39,10 @@ def draw_single(algo_list, color, x, y, env):
         plt.xlabel('num episodes', fontsize=10)
         plt.title(env, fontsize=10)
         plt.legend(loc='lower right', fontsize=5)
-        plt.savefig("vis/%s--%s.png" % (algo, env))
+        plt.savefig(path + "/vis/%s--%s.png" % (algo, env))
 
 
-def draw_all(algo_list, color, x, y, env):
+def draw_all(algo_list, color, x, y, env, path):
     plt.cla()
     for i, algo in enumerate(reversed(algo_list)):
         sns.tsplot(time=x[algo], data=y[algo], condition=algo, linewidth=0.5, color=color[i])
@@ -44,14 +52,18 @@ def draw_all(algo_list, color, x, y, env):
         # plt.xticks((0, 2000, 20))
         plt.title(env, fontsize=10)
         plt.legend(loc='lower right', fontsize=5)
-        plt.savefig("vis/ALL-%s.png" % (env))
+        plt.savefig(path + "/vis/ALL-%s.png" % (env))
 
 
 if __name__ == "__main__":
+    path = sys.path[0].rsplit("/", 1)[0]
     env = "CartPole-v1"
-    # algo_list = ['PPO', 'REINFORCE', 'DQN', "DDPG", "vtrace", 'ActorCritic', "acer", "a3c", "PPO_lstm"]
-    algo_list = ['DQN', 'PPO']
-    x, y = get_all_data(algo_list)
+    if env == 'CartPole-v1':
+        # algo_list = ["vtrace", 'ActorCritic', "acer", "a3c", "PPO_lstm"]
+        algo_list = ['REINFORCE', 'DQN', 'PPO']
+    elif env == 'Pendulum-v1':
+        algo_list = ['DDPG', 'SAC']
+    x, y = get_all_data(algo_list, path)
     color = sns.hls_palette(len(algo_list), l=.5, s=.5)  # l-亮度 lightness s-饱和 saturation
-    draw_single(algo_list, color, x, y, env)
-    draw_all(algo_list, color, x, y, env)
+    draw_single(algo_list, color, x, y, env, path)
+    draw_all(algo_list, color, x, y, env, path)

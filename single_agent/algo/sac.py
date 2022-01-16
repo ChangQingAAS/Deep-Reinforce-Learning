@@ -7,11 +7,13 @@ from torch.distributions import Normal
 import numpy as np
 import collections, random
 import sys
+
 sys.path.append(".")
 from args.config import sac_params as params
 
 
 class ReplayBuffer():
+
     def __init__(self, buffer_limit):
         self.buffer = collections.deque(maxlen=buffer_limit)
 
@@ -40,10 +42,11 @@ class ReplayBuffer():
 
 
 class PolicyNet(nn.Module):
-    def __init__(self, learning_rate, lr_alpha, init_alpha, target_entropy):
+
+    def __init__(self, learning_rate, lr_alpha, init_alpha, target_entropy, in_dim):
         self.target_entropy = target_entropy
         super(PolicyNet, self).__init__()
-        self.fc1 = nn.Linear(3, 128)
+        self.fc1 = nn.Linear(in_dim, 128)
         self.fc_mu = nn.Linear(128, 1)
         self.fc_std = nn.Linear(128, 1)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
@@ -60,8 +63,7 @@ class PolicyNet(nn.Module):
         action = dist.rsample()
         log_prob = dist.log_prob(action)
         real_action = torch.tanh(action)
-        real_log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) +
-                                             1e-7)
+        real_log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
         return real_action, real_log_prob
 
     def train_net(self, q1, q2, mini_batch):
@@ -79,17 +81,17 @@ class PolicyNet(nn.Module):
         self.optimizer.step()
 
         self.log_alpha_optimizer.zero_grad()
-        alpha_loss = -(self.log_alpha.exp() *
-                       (log_prob + self.target_entropy).detach()).mean()
+        alpha_loss = -(self.log_alpha.exp() * (log_prob + self.target_entropy).detach()).mean()
         alpha_loss.backward()
         self.log_alpha_optimizer.step()
 
 
 class QNet(nn.Module):
-    def __init__(self, learning_rate, tau):
+
+    def __init__(self, learning_rate, tau, in_dim):
         super(QNet, self).__init__()
         self.tau = tau
-        self.fc_s = nn.Linear(3, 64)
+        self.fc_s = nn.Linear(in_dim, 64)
         self.fc_a = nn.Linear(1, 64)
         self.fc_cat = nn.Linear(128, 32)
         self.fc_out = nn.Linear(32, 1)
@@ -111,10 +113,8 @@ class QNet(nn.Module):
         self.optimizer.step()
 
     def soft_update(self, net_target):
-        for param_target, param in zip(net_target.parameters(),
-                                       self.parameters()):
-            param_target.data.copy_(param_target.data * (1.0 - self.tau) +
-                                    param.data * self.tau)
+        for param_target, param in zip(net_target.parameters(), self.parameters()):
+            param_target.data.copy_(param_target.data * (1.0 - self.tau) + param.data * self.tau)
 
 
 def calc_target(pi, q1, q2, mini_batch, gamma):
@@ -132,8 +132,10 @@ def calc_target(pi, q1, q2, mini_batch, gamma):
 
 
 class sac_algo():
-    def __init__(self):
+
+    def __init__(self, path):
         super(sac_algo, self).__init__()
+        self.path = path
         self.env = gym.make(params['gym_env'])
         self.lr_q = params['lr_q']
         self.lr_pi = params['lr_pi']
@@ -146,57 +148,62 @@ class sac_algo():
         self.init_aplha = params['init_alpha']
         self.target_entropy = params['target_entropy']
         self.buffer_limit = params['buffer_limit']
+        self.train_number = params['train_number']
+        self.obs_dim = self.env.observation_space.shape[0]
+        self.action_dim = self.env.action_space.shape[0]
 
         self.memory = ReplayBuffer(self.buffer_limit)
-        self.q1, self.q1_target = QNet(self.lr_q,
-                                       self.tau), QNet(self.lr_q, self.tau)
-        self.q2, self.q2_target = QNet(self.lr_q,
-                                       self.tau), QNet(self.lr_q, self.tau)
+        self.q1 = QNet(self.lr_q, self.tau, self.obs_dim)
+        self.q1_target = QNet(self.lr_q, self.tau, self.obs_dim)
+        self.q2 = QNet(self.lr_q, self.tau, self.obs_dim)
+        self.q2_target = QNet(self.lr_q, self.tau, self.obs_dim)
         self.q1_target.load_state_dict(self.q1.state_dict())
         self.q2_target.load_state_dict(self.q2.state_dict())
 
-        self.pi = PolicyNet(self.lr_pi, self.lr_alpha, self.init_aplha,
-                            self.target_entropy)
+        self.pi = PolicyNet(self.lr_pi, self.lr_alpha, self.init_aplha, self.target_entropy, self.obs_dim)
 
         self.init_write()
 
     def init_write(self):
-        with open("./result/sac.csv", "w+", encoding="utf-8") as f:
-            f.write("epoch_number,reward \n")
+        for i in range(self.train_number):
+            with open(self.path + "/result/SAC/result_%s.csv" % str(i), "w+", encoding="utf-8") as f:
+                f.write("epoch_number,average reward\n")
 
     def train(self):
+        for train_counter in range(self.train_number):
+            for n_epi in range(self.epoch):
+                score = 0.0
+                s = self.env.reset()
+                done = False
 
-        for n_epi in range(10000):
-            score = 0.0
+                while not done:
+                    a, log_prob = self.pi(torch.from_numpy(s).float())
+                    s_prime, r, done, info = self.env.step([2.0 * a.item()])
+                    self.memory.put((s, a.item(), r / 10.0, s_prime, done))
+                    score += r
+                    s = s_prime
 
-            s = self.env.reset()
-            done = False
+                if self.memory.size() > 1000:
+                    for i in range(20):
+                        mini_batch = self.memory.sample(self.batch_size)
+                        td_target = calc_target(self.pi, self.q1_target, self.q2_target, mini_batch, self.gamma)
+                        self.q1.train_net(td_target, mini_batch)
+                        self.q2.train_net(td_target, mini_batch)
+                        entropy = self.pi.train_net(self.q1, self.q2, mini_batch)
+                        self.q1.soft_update(self.q1_target)
+                        self.q2.soft_update(self.q2_target)
 
-            while not done:
-                a, log_prob = self.pi(torch.from_numpy(s).float())
-                s_prime, r, done, info = self.env.step([2.0 * a.item()])
-                self.memory.put((s, a.item(), r / 10.0, s_prime, done))
-                score += r
-                s = s_prime
-
-            if self.memory.size() > 1000:
-                for i in range(20):
-                    mini_batch = self.memory.sample(self.batch_size)
-                    td_target = calc_target(self.pi, self.q1_target,
-                                            self.q2_target, mini_batch,
-                                            self.gamma)
-                    self.q1.train_net(td_target, mini_batch)
-                    self.q2.train_net(td_target, mini_batch)
-                    entropy = self.pi.train_net(self.q1, self.q2, mini_batch)
-                    self.q1.soft_update(self.q1_target)
-                    self.q2.soft_update(self.q2_target)
-
-            with open("./result/sac.csv", "a+", encoding="utf-8") as f:
-                f.write("{},{}\n".format(n_epi, score))
-
-        self.env.close()
+                if n_epi % self.print_interval == 0:
+                    with open(self.path + "/result/SAC/result_%s.csv" % str(train_counter), "a+",
+                              encoding="utf-8") as f:
+                        f.write("{},{}\n".format(n_epi, score / self.print_interval))
+                    print("# of episode :{}, avg score : {:.1f} alpha:{:.4f}".format(
+                        n_epi, score / self.print_interval, self.pi.log_alpha.exp()))
+                    score = 0.0
+            self.env.close()
 
 
 if __name__ == '__main__':
-    algo = sac_algo()
+    path = sys.path[0].rsplit("/", 1)[0]
+    algo = sac_algo(path)
     algo.train()
