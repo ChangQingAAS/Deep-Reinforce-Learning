@@ -1,6 +1,6 @@
 import torch as T
 import torch.nn.functional as F
-from maddpg_made.Agent import Agent
+from Agent_made import Agent
 import numpy as np
 
 T.autograd.set_detect_anomaly(True)
@@ -92,8 +92,7 @@ class MADDPG:
             #states = T.tensor(states[agent], dtype=T.float).to(device)
             actions[agent] = T.tensor(actions[agent], dtype=T.float).to(device)
             actions[agent].requires_grad_(True)
-            rewards[agent] = T.tensor(rewards[agent],
-                                      dtype=T.double).to(device)
+            rewards[agent] = T.tensor(rewards[agent], dtype=T.double).to(device)
             #states_ = T.tensor(states_[agent], dtype=T.float).to(device)
             dones[agent] = T.tensor(dones[agent]).to(device)
 
@@ -106,14 +105,12 @@ class MADDPG:
         old_agents_actions = []
 
         for agent in self.agents:
-            new_states = T.tensor(actor_new_states[agent],
-                                  dtype=T.float).to(device)
+            new_states = T.tensor(actor_new_states[agent], dtype=T.float).to(device)
             with T.no_grad():
                 new_pi = self.agents[agent].target_actor.forward(new_states)
                 all_agents_new_actions.append(new_pi)
 
-                mu_states = T.tensor(actor_states[agent],
-                                     dtype=T.float).to(device)
+                mu_states = T.tensor(actor_states[agent], dtype=T.float).to(device)
                 pi = self.agents[agent].actor.forward(mu_states)
                 all_agents_new_mu_actions.append(pi)
             old_agents_actions.append(actions[agent])
@@ -124,8 +121,8 @@ class MADDPG:
 
         for agent in self.agents:
             with T.no_grad():
-                critic_value_ = self.agents[agent].target_critic.forward(
-                    states_, new_actions).flatten()
+                critic_value_ = self.agents[agent].target_critic.forward(states_,
+                                                                         new_actions).flatten()
                 #maybe because when the first agent is done its done?
                 #a)
                 #for agent in self.agents:
@@ -135,11 +132,9 @@ class MADDPG:
 
                 #I've added this line below
                 critic_value_ = critic_value_.to(T.float64)
-                target = rewards[
-                    agent] + self.agents[agent].gamma * critic_value_
+                target = rewards[agent] + self.agents[agent].gamma * critic_value_
 
-            critic_value = self.agents[agent].critic.forward(
-                states, old_actions).flatten()
+            critic_value = self.agents[agent].critic.forward(states, old_actions).flatten()
             critic_value = critic_value.to(T.float64)
 
             #.detach() #:, agent_idx, detach has been added
@@ -149,8 +144,7 @@ class MADDPG:
             self.agents[agent].critic.optimizer.step()
 
             self.agents[agent].actor.optimizer.zero_grad()
-            actor_loss = -self.agents[agent].critic.forward(states,
-                                                            mu).flatten()
+            actor_loss = -self.agents[agent].critic.forward(states, mu).flatten()
             actor_loss = actor_loss.mean()
 
             actor_loss.backward(retain_graph=True)
