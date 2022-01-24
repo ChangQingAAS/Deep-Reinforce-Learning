@@ -13,7 +13,7 @@ default_params = {
     "n_train_processes": 3,
     "update_interval": 5,
     "max_train_steps": 60000,
-    "print_interval": 10,
+    "print_interval": 50,
     "max_train_ep": 10000,
     "max_test_ep": 400,
     "lr_mu": 0.0005,
@@ -21,13 +21,13 @@ default_params = {
     "tau": 0.005,  # for target network soft update
 }
 
-# ---------------------------------------
+# --------------CartPole-v1-------------------------
 reinforce_params = {
     "gym_env": 'CartPole-v1',  # gym 环境
     "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0005,  # 学习率，这里给的比较高
     "gamma": 0.98,  # 衰退因子
-    "epoch": 2000,  # 回合数 
+    "epoch": 10000,  # 回合数 
     "train_number": 1,  # 训练(测试）测试数
 }
 
@@ -36,10 +36,36 @@ dqn_params = {
     "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0005,  # 学习率，这里给的比较高
     "gamma": 0.98,  # 衰退因子
-    "epoch": 2000,  # 回合数
+    "epoch": 10000,  # 回合数
     "n_rollout": 10,  # ？
     "buffer_limit": 5000,  # buffer大小
     "batch_size": 32,  # 批处理大小
+    "train_number": 1,  # 训练(测试）测试数
+}
+
+ddqn_params = {
+    "gym_env": 'CartPole-v1',
+    "learning_rate": 0.005,
+    "gamma": 0.9,
+    "epoch": 10000,
+    "batch_size": 32,
+    "epsilon": 0.9,
+    "target_replace_iter": 100,
+    "memory_capacity": 2000,
+    "print_interval": 50,
+    "train_number": 1,  # 训练(测试）测试数
+}
+
+dueling_dqn_params = {
+    "gym_env": 'CartPole-v1',
+    "learning_rate": 0.005,
+    "gamma": 0.9,
+    "epoch": 10000,
+    "batch_size": 32,
+    "epsilon": 0.9,
+    "target_replace_iter": 100,
+    "memory_capacity": 2000,
+    "print_interval": 50,
     "train_number": 1,  # 训练(测试）测试数
 }
 
@@ -48,7 +74,7 @@ ppo_params = {
     "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0005,  # 学习率，这里给的比较高
     "gamma": 0.98,  # 衰退因子
-    "epoch": 2000,  # 回合数
+    "epoch": 10000,  # 回合数
     "lmbda": 0.95,
     "eps_clip": 0.1,
     "K_epoch": 3,
@@ -58,9 +84,9 @@ ppo_params = {
 
 ac_params = {
     "gym_env": 'CartPole-v1',  # gym 环境
-    "print_interval": 20,  # 输出/写入间隔
+    "print_interval": 50,  # 输出/写入间隔
     "learning_rate": 0.0001,  # 学习率，这里给的比较高
-    "epoch": 2000,  # 回合数 
+    "epoch": 10000,  # 回合数 
     "gamma": 0.99,
     "train_number": 1,  # 训练(测试）测试数
     "n_rollout": 10,
@@ -69,14 +95,14 @@ ac_params = {
 
 ddpg_params = {
     "gym_env": 'Pendulum-v1',  # gym 环境
-    "print_interval": 20,  # 输出/写入间隔
+    "print_interval": 50,  # 输出/写入间隔
     "lr_mu": 0.0005,  # 学习率，这里给的比较高
     "lr_q": 0.001,
     "gamma": 0.99,  # 衰退因子
     "batch_size": 32,
     "buffer_limit": 50000,
     "tau": 0.005,  # for target network soft update
-    "epoch": 2000,  # 回合数
+    "epoch": 10000,  # 回合数
     "train_number": 1,  # 训练(测试）测试数
 }
 
@@ -88,8 +114,8 @@ sac_params = {
     "gamma": 0.98,
     "batch_size": 32,
     "buffer_limit": 50000,
-    "print_interval": 20,
-    "epoch": 2000,
+    "print_interval": 50,
+    "epoch": 10000,
     "tau": 0.01,  # for target network soft update
     "target_entropy": -1.0,  # for automated alpha update
     "lr_alpha": 0.001,  # for automated alpha update

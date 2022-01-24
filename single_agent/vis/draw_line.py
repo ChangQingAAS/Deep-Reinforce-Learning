@@ -33,6 +33,7 @@ def get_all_data(algo_list, path):
 def draw_single(algo_list, color, x, y, env, path):
     for i, algo in enumerate(algo_list):
         plt.cla()
+        fig = plt.figure(dpi=600)
         sns.tsplot(time=x[algo], data=y[algo], condition=algo, linewidth=0.5, color=color[i])
         plt.ylabel('average reward', fontsize=10)
         plt.xlabel('num episodes', fontsize=10)
@@ -43,6 +44,7 @@ def draw_single(algo_list, color, x, y, env, path):
 
 def draw_all(algo_list, color, x, y, env, path):
     plt.cla()
+    fig = plt.figure(dpi=600)
     for i, algo in enumerate(reversed(algo_list)):
         sns.tsplot(time=x[algo], data=y[algo], condition=algo, linewidth=0.5, color=color[i])
         plt.ylabel('average reward', fontsize=10)
@@ -56,10 +58,10 @@ def draw_all(algo_list, color, x, y, env, path):
 
 if __name__ == "__main__":
     path = sys.path[0].rsplit("/", 1)[0]
-    env = "CartPole-v1"
+    env = "Pendulum-v1"
     if env == 'CartPole-v1':
         # algo_list = ["vtrace",  "acer", "a3c", "PPO_lstm"]
-        algo_list = ['REINFORCE', 'DQN', 'PPO', 'AC']
+        algo_list = ['REINFORCE', 'DQN', 'PPO', 'DDQN', 'AC', 'DuelingDQN', 'PPO-LSTM']
     elif env == 'Pendulum-v1':
         algo_list = ['DDPG', 'SAC']
     x, y = get_all_data(algo_list, path)

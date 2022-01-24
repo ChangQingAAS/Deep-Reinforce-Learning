@@ -16,6 +16,8 @@
 2. DQN(including replay memory and target network)
 3. PPO (including GAE)
 4. Actor Critic
+5. DDQN
+6. DuelingDQN
 
 ### 连续动作 -》 “Pendulum-v1"
 
