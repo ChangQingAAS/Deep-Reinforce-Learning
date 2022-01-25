@@ -6,7 +6,7 @@ gamma = 0.95
 tau = 0.01
 
 PRINT_INTERVAL = 20
-epoch = 1000 
+epoch = 3000
 MAX_STEPS = 50
 total_steps = 0
 score_history = []

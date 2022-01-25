@@ -18,6 +18,7 @@
 4. Actor Critic
 5. DDQN
 6. DuelingDQN
+7. PPO-LSTM
 
 ### 连续动作 -》 “Pendulum-v1"
 
@@ -31,7 +32,6 @@
 4. vtrace
 5. A2C
 6. PPO-Continuous
-7. PPO-LSTM
 
 ## 运行方式
 

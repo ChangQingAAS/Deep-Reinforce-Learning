@@ -58,12 +58,14 @@ def draw_all(algo_list, color, x, y, env, path):
 
 if __name__ == "__main__":
     path = sys.path[0].rsplit("/", 1)[0]
-    env = "Pendulum-v1"
+    env = "DQN"
     if env == 'CartPole-v1':
         # algo_list = ["vtrace",  "acer", "a3c", "PPO_lstm"]
         algo_list = ['REINFORCE', 'DQN', 'PPO', 'DDQN', 'AC', 'DuelingDQN', 'PPO-LSTM']
     elif env == 'Pendulum-v1':
         algo_list = ['DDPG', 'SAC']
+    elif env == "DQN":
+        algo_list = ['DQN', 'DDQN', 'DuelingDQN']
     x, y = get_all_data(algo_list, path)
     color = sns.hls_palette(len(algo_list), l=.5, s=.5)  # l-亮度 lightness s-饱和 saturation
     draw_single(algo_list, color, x, y, env, path)

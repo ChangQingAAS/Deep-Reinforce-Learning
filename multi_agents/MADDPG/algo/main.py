@@ -27,6 +27,7 @@ class MADDPG_ALGO():
             self.env.reset()
         else:
             self.env = simple_adversary_v2.parallel_env()
+            self.env.reset()
 
         self.critic_obs_dims = 0
         for i in self.env.agents:
