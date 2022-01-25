@@ -65,4 +65,4 @@ cd scale_agents/mfddpg
 
 ### MFDDPG算法
 
-<img src="./scale_agents/mfddpg/run.gif" alt="gif_alt">
+<img src="https://github.com/ChangQingAAS/MFDDPG_Path_Planning/blob/main/vis/epoch_2.gif" alt="gif_alt">
