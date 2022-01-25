@@ -5,8 +5,10 @@
 
 ## 依赖
 
-1. PyTorch 1.10
-2. OpenAI GYM
+- Ubuntu 20.04
+- python 3.8.10
+- PyTorch 1.10.1
+- OpenAI GYM 0.21.1  
 
 ## 算法
 
