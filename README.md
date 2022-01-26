@@ -57,7 +57,7 @@ cd scale_agents/mfddpg
 
 ### 单智能体深度强化学习算法
 
-<img src="./single_agent/vis/ALL-CartPole-v1.png" alt="图片alt"  >
+<img src="./single_agent/vis/ALL-CartPole-v1.png" alt="图片alt" >
 
 ### MADDPG算法
 
@@ -65,4 +65,4 @@ cd scale_agents/mfddpg
 
 ### MFDDPG算法
 
-<img src="https://github.com/ChangQingAAS/MFDDPG_Path_Planning/blob/main/vis/epoch_2.gif" alt="gif_alt">
+<img src="./scale_agents/mfddpg/run.gif" >
