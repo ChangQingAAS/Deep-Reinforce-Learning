@@ -1,0 +1,20 @@
+## 文件说明
+-  buffer.py
+    - 重放缓冲区
+- config.py
+    - 定义全局参数\关键参数
+- network.py
+    - Actor 网络
+    - Critic 网络
+- OUNoise.py
+    - ou噪声实现
+- train.py
+    - 实例化trainer即可调用算法
+- update.py
+    - 软更新，硬更新算法网络参数
+- run.gif 
+    - 运行结果
+- models 文件夹
+    - 保存模型
+- output文件夹
+    - 算法中间运行过程结果保存，用于分析

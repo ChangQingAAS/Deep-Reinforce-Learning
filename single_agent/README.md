@@ -10,6 +10,16 @@
 - PyTorch 1.10.1
 - OpenAI GYM 0.21.1  
 
+## 文件说明
+- algo文件夹: 
+    - 具体算法
+- args文件夹: 
+    - 各个算法的参数（没用argparse主要是因为重构起来太麻烦
+- result 文件夹：
+    - 保存算法运行后的结果
+- vis 文件夹：
+    - 算法结果可视化
+
 ## 算法
 
 ### 离散动作 - 》 “CartPole-v1”
@@ -43,3 +53,7 @@
 cd single_agent
 python3 algo/DQN.py 
 ```
+
+## others
+- 为方便对比所有算法的参数，请在args/config.py里定义参数()
+- 上面标TODO的算法也实现了，只是效果一般，就暂时没有进行一些工程上的重构优化，落后其他算法一个版本
